@@ -1,0 +1,208 @@
+# Membrain MANIFEST: every file an agent or bootstrap.py generates. Regenerate with scripts/build_manifest.py.
+# template = path in this repo (fetch it from <raw base>/<template>)
+# target   = path in the user's workspace; {{BRAIN_NAME}} is filled at spin-off
+# kind     = framework (upgradable: replaced by 'upgrade --apply' when unchanged locally)
+#            content   (generated once, then the user's; never overwritten)
+# scope    = workspace (setup) | personal (setup) | shared (each spin-off)
+# mode     = file mode to set (755 = executable)
+membrain_version: 0.2.0
+placeholders:
+  - workspace: [OWNER, DATE, MEMBRAIN_VERSION, SOURCE_URL]
+  - personal: [BRAIN_NAME, OWNER, DATE, REMOTE, ALIASES]
+  - shared: [BRAIN_NAME, OWNER, DATE, DESCRIPTION, TOPICS, EDITORS]
+files:
+  - template: templates/workspace/AGENTS.md
+    target: AGENTS.md
+    kind: framework
+    scope: workspace
+  - template: templates/workspace/CLAUDE.md
+    target: CLAUDE.md
+    kind: framework
+    scope: workspace
+  - template: templates/workspace/START-HERE.md
+    target: START-HERE.md
+    kind: framework
+    scope: workspace
+  - template: templates/workspace/cursor-rule.mdc
+    target: .cursor/rules/membrain.mdc
+    kind: framework
+    scope: workspace
+  - template: templates/workspace/docs/ENTRY-FORMAT.md
+    target: docs/ENTRY-FORMAT.md
+    kind: framework
+    scope: workspace
+  - template: templates/workspace/docs/PRIVACY.md
+    target: docs/PRIVACY.md
+    kind: framework
+    scope: workspace
+  - template: templates/workspace/docs/SITEMAP-FORMAT.md
+    target: docs/SITEMAP-FORMAT.md
+    kind: framework
+    scope: workspace
+  - template: templates/workspace/gitignore
+    target: .gitignore
+    kind: framework
+    scope: workspace
+  - template: templates/workspace/tests/fixtures/playbook-sample.md
+    target: tests/fixtures/playbook-sample.md
+    kind: framework
+    scope: workspace
+  - template: templates/workspace/tests/run.sh
+    target: tests/run.sh
+    kind: framework
+    scope: workspace
+    mode: "755"
+  - template: templates/scripts/lint.py
+    target: scripts/lint.py
+    kind: framework
+    scope: workspace
+    mode: "755"
+  - template: templates/scripts/membrain.py
+    target: scripts/membrain.py
+    kind: framework
+    scope: workspace
+    mode: "755"
+  - template: templates/scripts/pull-all.sh
+    target: scripts/pull-all.sh
+    kind: framework
+    scope: workspace
+    mode: "755"
+  - template: templates/scripts/route.py
+    target: scripts/route.py
+    kind: framework
+    scope: workspace
+    mode: "755"
+  - template: templates/scripts/spinoff.sh
+    target: scripts/spinoff.sh
+    kind: framework
+    scope: workspace
+    mode: "755"
+  - template: templates/scripts/upgrade.sh
+    target: scripts/upgrade.sh
+    kind: framework
+    scope: workspace
+    mode: "755"
+  - template: templates/personal-brain/AGENTS.md
+    target: brains/personal/AGENTS.md
+    kind: framework
+    scope: personal
+  - template: templates/personal-brain/CLAUDE.md
+    target: brains/personal/CLAUDE.md
+    kind: content
+    scope: personal
+  - template: templates/personal-brain/ROUTES.md
+    target: brains/personal/ROUTES.md
+    kind: content
+    scope: personal
+  - template: templates/personal-brain/SITEMAP.md
+    target: brains/personal/SITEMAP.md
+    kind: content
+    scope: personal
+  - template: templates/personal-brain/STATE.md
+    target: brains/personal/STATE.md
+    kind: content
+    scope: personal
+  - template: templates/personal-brain/brains.yaml
+    target: brains/personal/brains.yaml
+    kind: content
+    scope: personal
+  - template: templates/personal-brain/gitignore
+    target: brains/personal/.gitignore
+    kind: framework
+    scope: personal
+  - template: templates/personal-brain/handoffs/README.md
+    target: brains/personal/handoffs/README.md
+    kind: framework
+    scope: personal
+  - template: templates/personal-brain/howto/README.md
+    target: brains/personal/howto/README.md
+    kind: content
+    scope: personal
+  - template: templates/personal-brain/inbox.md
+    target: brains/personal/inbox.md
+    kind: content
+    scope: personal
+  - template: templates/personal-brain/membrain.yaml
+    target: brains/personal/.membrain.yaml
+    kind: content
+    scope: personal
+  - template: templates/personal-brain/pointers/README.md
+    target: brains/personal/pointers/README.md
+    kind: content
+    scope: personal
+  - template: templates/personal-brain/projects/README.md
+    target: brains/personal/projects/README.md
+    kind: content
+    scope: personal
+  - template: templates/personal-brain/requests.csv
+    target: brains/personal/requests.csv
+    kind: content
+    scope: personal
+  - template: templates/personal-brain/sources.csv
+    target: brains/personal/sources.csv
+    kind: content
+    scope: personal
+  - template: templates/hooks/pre-commit
+    target: brains/personal/.githooks/pre-commit
+    kind: framework
+    scope: personal
+    mode: "755"
+  - template: templates/scripts/lint.py
+    target: brains/personal/.membrain/lint.py
+    kind: framework
+    scope: personal
+    mode: "755"
+  - template: templates/shared-brain/AGENTS.md
+    target: brains/{{BRAIN_NAME}}/AGENTS.md
+    kind: framework
+    scope: shared
+  - template: templates/shared-brain/CLAUDE.md
+    target: brains/{{BRAIN_NAME}}/CLAUDE.md
+    kind: content
+    scope: shared
+  - template: templates/shared-brain/SITEMAP.md
+    target: brains/{{BRAIN_NAME}}/SITEMAP.md
+    kind: content
+    scope: shared
+  - template: templates/shared-brain/STATE.md
+    target: brains/{{BRAIN_NAME}}/STATE.md
+    kind: content
+    scope: shared
+  - template: templates/shared-brain/gitignore
+    target: brains/{{BRAIN_NAME}}/.gitignore
+    kind: framework
+    scope: shared
+  - template: templates/shared-brain/handoffs/README.md
+    target: brains/{{BRAIN_NAME}}/handoffs/README.md
+    kind: framework
+    scope: shared
+  - template: templates/shared-brain/inbox.md
+    target: brains/{{BRAIN_NAME}}/inbox.md
+    kind: content
+    scope: shared
+  - template: templates/shared-brain/membrain.yaml
+    target: brains/{{BRAIN_NAME}}/.membrain.yaml
+    kind: content
+    scope: shared
+  - template: templates/shared-brain/playbook/fixes.md
+    target: brains/{{BRAIN_NAME}}/playbook/fixes.md
+    kind: content
+    scope: shared
+  - template: templates/shared-brain/requests.csv
+    target: brains/{{BRAIN_NAME}}/requests.csv
+    kind: content
+    scope: shared
+  - template: templates/shared-brain/sources.csv
+    target: brains/{{BRAIN_NAME}}/sources.csv
+    kind: content
+    scope: shared
+  - template: templates/hooks/pre-commit
+    target: brains/{{BRAIN_NAME}}/.githooks/pre-commit
+    kind: framework
+    scope: shared
+    mode: "755"
+  - template: templates/scripts/lint.py
+    target: brains/{{BRAIN_NAME}}/.membrain/lint.py
+    kind: framework
+    scope: shared
+    mode: "755"

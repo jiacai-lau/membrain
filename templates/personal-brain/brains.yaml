@@ -1,0 +1,12 @@
+# Membrain registry. Lives only in the personal brain because it names the personal brain.
+# After editing: scripts/route.py write-routes brains/personal/ROUTES.md
+version: 1
+owner: {{OWNER}}
+brains:
+  - name: {{BRAIN_NAME}}
+    path: brains/personal
+    visibility: personal
+    remote: {{REMOTE}}
+    aliases: [{{ALIASES}}]
+    owns: [everything not routed elsewhere, finance, grants, pricing, commercial, people, personal]
+    default_file: inbox.md

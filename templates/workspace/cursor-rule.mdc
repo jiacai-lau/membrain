@@ -1,0 +1,5 @@
+---
+description: Membrain brains. Read AGENTS.md before using or writing any brain.
+alwaysApply: true
+---
+Read `AGENTS.md` at the workspace root and follow it before reading from or writing to anything under `brains/`.

@@ -1,0 +1,8 @@
+# Brains are separate git repos. Never commit them into the template.
+brains/*
+!brains/_personal-template/
+!brains/_shared-template/
+.qmd/
+__pycache__/
+*.pyc
+.DS_Store

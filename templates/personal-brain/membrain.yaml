@@ -1,0 +1,7 @@
+# Membrain brain config: PERSONAL. This repo must stay private. Never share, never make public.
+name: {{BRAIN_NAME}}
+visibility: personal
+owner: {{OWNER}}
+created: {{DATE}}
+stale_days: 30
+inbox_days: 14

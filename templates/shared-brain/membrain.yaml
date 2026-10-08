@@ -1,0 +1,9 @@
+# Membrain brain config. Read by .membrain/lint.py.
+name: {{BRAIN_NAME}}
+visibility: shared            # shared: anyone with repo access may read it; lint blocks private content
+owner: {{OWNER}}
+editors: [{{EDITORS}}]
+created: {{DATE}}
+stale_days: 30                # SITEMAP rows and 'unverified' lines older than this get flagged
+inbox_days: 14                # inbox items waiting longer than this get flagged
+privacy_allow: []             # regexes the privacy check ignores, e.g. ["@yourcompany\\.com"]
