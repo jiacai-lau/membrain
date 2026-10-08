@@ -4,7 +4,7 @@ templates. Nobody clones Membrain; this script fetches MANIFEST.yaml and the tem
 
   membrain.py setup   --base <url|path> --workspace DIR --owner NAME [--personal-name personal]
                       [--aliases "a,b"] [--account GH_USER] [--date YYYY-MM-DD] [--no-selftest]
-  membrain.py spinoff NAME [--owner NAME] [--description ..] [--topics "a,b"] [--keywords "x,y"]
+  membrain.py spinoff NAME [--owner NAME] [--description ..] [--topics "a,b"] [--objectives "o1; o2"] [--keywords "x,y"]
                       [--never "price,grant,..."] [--editors "p,q"] [--org ORG]
                       [--move PATH[:NEWPATH]]... [--accept-warnings] [--base <url|path>]
   membrain.py upgrade [--base <url|path>] [--apply] [--force-local]     (dry-run unless --apply)
@@ -146,11 +146,15 @@ def load_state(ws: Path) -> dict:
 
 
 # ------------------------------------------------------------------ rendering
+class Unfilled(Exception):
+    pass
+
+
 def render(text: str, vars_: dict, where: str) -> str:
     out = PLACEHOLDER.sub(lambda m: str(vars_[m.group(1)]) if m.group(1) in vars_ else m.group(0), text)
     left = PLACEHOLDER.findall(out)
     if left:
-        sys.exit(f"membrain: unfilled placeholder(s) {sorted(set(left))} in {where}")
+        raise Unfilled(f"unfilled placeholder(s) {sorted(set(left))} in {where}")
     return out
 
 
@@ -177,8 +181,11 @@ def generate(base, man, ws: Path, scope: str, vars_: dict, varset_id: str, overw
     for f in man["files"]:
         if f.get("scope") != scope:
             continue
-        target = render(f["target"], vars_, f["target"])
-        text = render(fetch(base, f["template"]), vars_, f["template"])
+        try:
+            target = render(f["target"], vars_, f["target"])
+            text = render(fetch(base, f["template"]), vars_, f["template"])
+        except Unfilled as e:
+            sys.exit(f"membrain: {e}")
         dest = ws / target
         if dest.exists() and not overwrite:
             sys.exit(f"membrain: {target} already exists; refusing to overwrite")
@@ -274,8 +281,16 @@ def cmd_spinoff(o):
     owner = o.owner or st["owner"]
     date = today()
     desc = (o.description or f"Shared brain: {name}").replace('"', "'")
-    svars = {"BRAIN_NAME": name, "OWNER": owner, "DATE": date, "DESCRIPTION": desc,
-             "TOPICS": csv_yaml(o.topics) or desc, "EDITORS": csv_yaml(o.editors)}
+    org = o.org or owner
+    topics = csv_yaml(o.topics) or desc
+    objectives = [x.strip() for x in (o.objectives or "").split(";") if x.strip()] or [
+        f"Anyone on the team finds the current answer about {topics} in one file here, with a date and an owner.",
+        "A fix or answer learned once is written once, so nobody has to work it out twice.",
+        "Nothing private (amounts, credentials, people's details, anyone's own notes) ever lands here."]
+    svars = {"BRAIN_NAME": name, "OWNER": owner, "DATE": date, "DESCRIPTION": desc, "TOPICS": topics,
+             "EDITORS": csv_yaml(o.editors) or f"@{owner}", "REPO": f"{org}/{name}",
+             "REMOTE": f"git@github.com:{org}/{name}.git",
+             "OBJECTIVES": "\n".join(f"{i}. {x}" for i, x in enumerate(objectives, 1))}
     man = manifest(base)
     print(f"Membrain: spinning off shared brain '{name}' from {base}")
     gen = generate(base, man, ws, "shared", svars, f"brain:{name}")
@@ -289,7 +304,7 @@ def cmd_spinoff(o):
         if not src.is_file():
             sys.exit(f"membrain: --move {src_rel} is not a file in brains/personal")
         cmd = [sys.executable, str(ws / "scripts" / "lint.py"), str(src), "--privacy-only", "--visibility", "shared",
-               "--registry", str(reg)] + ([] if o.accept_warnings else ["--strict"])
+               "--registry", str(reg), "--strict", "--fail-on", "high" if o.accept_warnings else "low"]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode == 0:
             (dest / dst_rel).parent.mkdir(parents=True, exist_ok=True)
@@ -305,8 +320,8 @@ def cmd_spinoff(o):
                 if re.search(r" [EW]\d{3} ", line):
                     print("    " + line.strip())
 
-    r = subprocess.run([sys.executable, str(ws / "scripts" / "lint.py"), str(dest), "--registry", str(reg)],
-                       capture_output=True, text=True)
+    r = subprocess.run([sys.executable, str(ws / "scripts" / "lint.py"), str(dest), "--registry", str(reg),
+                        "--strict", "--fail-on", "med"], capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stdout)
         sys.exit(f"membrain: brains/{name} does not lint clean; personal brain untouched, nothing registered")
@@ -317,8 +332,7 @@ def cmd_spinoff(o):
         (personal / src_rel).write_text(
             f"# Moved\n\n- → {name}:{dst_rel} · moved · {date} · @{owner} · privacy:SHAREABLE_REVIEWED\n\n"
             "The content now lives in the shared brain. Read and write it there; do not copy it back.\n", encoding="utf-8")
-    org = o.org or owner
-    remote = f"git@github.com:{org}/{name}.git"
+    remote = svars["REMOTE"]
     with open(reg, "a", encoding="utf-8") as fh:
         fh.write(f"""  - name: {name}
     path: brains/{name}
@@ -376,7 +390,7 @@ def cmd_upgrade(o):
                 keep = vtuple(m.group(1)) > vtuple(st["membrain_version"])
             if keep:
                 print("  " + line)
-    proposals, skipped_content = [], []
+    proposals, skipped_content, produced = [], [], set()
     for f in man["files"]:
         scope = f.get("scope")
         if scope == "workspace":
@@ -387,12 +401,21 @@ def cmd_upgrade(o):
             ids = [i for i in varsets if i.startswith("brain:") and i != "brain:personal"]
         for vid in ids:
             vars_ = varsets[vid]
-            target = render(f["target"], vars_, f["target"])
+            try:
+                target = render(f["target"], vars_, f["target"])
+            except Unfilled as e:
+                print(f"  note: skipped {f['target']} ({e})")
+                continue
+            produced.add(target)
             if f.get("kind") != "framework":
                 if target not in recorded and not (ws / target).exists():
                     skipped_content.append(target)
                 continue
-            new_text = render(fetch(base, f["template"]), vars_, f["template"])
+            try:
+                new_text = render(fetch(base, f["template"]), vars_, f["template"])
+            except Unfilled as e:
+                proposals.append({"path": target, "action": f"SKIP (needs a new value: {e})", "skip": True})
+                continue
             new_sha = sha(new_text)
             rec = recorded.get(target)
             cur = ws / target
@@ -409,19 +432,25 @@ def cmd_upgrade(o):
                 action = "UPDATE"
             proposals.append({"path": target, "action": action, "text": new_text, "sha": new_sha, "f": f, "vid": vid,
                               "scope": scope, "mode": f.get("mode")})
+    retired = [g["path"] for g in st["generated"] if g.get("kind") == "framework" and g["path"] not in produced]
     print("\nProposed framework changes (content files are never touched):")
-    if not proposals:
+    if not proposals and not retired:
         print("  none: every framework file is current")
     for p in proposals:
         print(f"  {p['action']:<44} {p['path']}")
+    for r_ in retired:
+        print(f"  {'RETIRED (no longer generated; left in place)':<44} {r_}")
     if skipped_content:
-        print("\nNew content templates exist but are NOT applied (content is yours): " + ", ".join(skipped_content))
+        print("\nNew content templates exist but are NOT applied (content is yours; your agent may propose them): "
+              + ", ".join(skipped_content))
     if not o.apply:
         print("\nDry run. Nothing changed. Re-run with --apply to write the UPDATE/ADD items"
               " (CONFLICT items also need --force-local).")
         return
     touched_by_repo: dict[Path, list[str]] = {}
     for p in proposals:
+        if p.get("skip"):
+            continue
         if p["action"].startswith("CONFLICT") and not o.force_local:
             print(f"  skipped (conflict): {p['path']}")
             continue
@@ -431,7 +460,7 @@ def cmd_upgrade(o):
         parts = Path(p["path"]).parts
         if len(parts) > 2 and parts[0] == "brains" and (ws / "brains" / parts[1] / ".git").exists():
             touched_by_repo.setdefault(ws / "brains" / parts[1], []).append(str(Path(*parts[2:])))
-    st["generated"] = list(recorded.values())
+    st["generated"] = [g for g in recorded.values() if g["path"] not in retired]
     st["membrain_version"] = new_version
     (ws / ".membrain.yaml").write_text(dump_state(st), encoding="utf-8")
     for repo, paths in touched_by_repo.items():
@@ -455,7 +484,7 @@ def main(argv=None):
     s.add_argument("--no-selftest", action="store_true")
     b = sub.add_parser("spinoff")
     b.add_argument("name")
-    for a in ("--owner", "--description", "--topics", "--keywords", "--editors", "--org", "--base"):
+    for a in ("--owner", "--description", "--topics", "--objectives", "--keywords", "--editors", "--org", "--base"):
         b.add_argument(a)
     b.add_argument("--never", default="price,grant,quotation,salary,password")
     b.add_argument("--move", action="append")

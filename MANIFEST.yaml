@@ -5,11 +5,11 @@
 #            content   (generated once, then the user's; never overwritten)
 # scope    = workspace (setup) | personal (setup) | shared (each spin-off)
 # mode     = file mode to set (755 = executable)
-membrain_version: 0.2.0
+membrain_version: 0.3.0
 placeholders:
   - workspace: [OWNER, DATE, MEMBRAIN_VERSION, SOURCE_URL]
   - personal: [BRAIN_NAME, OWNER, DATE, REMOTE, ALIASES]
-  - shared: [BRAIN_NAME, OWNER, DATE, DESCRIPTION, TOPICS, EDITORS]
+  - shared: [BRAIN_NAME, OWNER, DATE, DESCRIPTION, TOPICS, EDITORS, REPO, REMOTE, OBJECTIVES]
 files:
   - template: templates/workspace/AGENTS.md
     target: AGENTS.md
@@ -21,6 +21,14 @@ files:
     scope: workspace
   - template: templates/workspace/START-HERE.md
     target: START-HERE.md
+    kind: framework
+    scope: workspace
+  - template: templates/workspace/claude-settings.json
+    target: .claude/settings.json
+    kind: framework
+    scope: workspace
+  - template: templates/workspace/cursor-hooks.json
+    target: .cursor/hooks.json
     kind: framework
     scope: workspace
   - template: templates/workspace/cursor-rule.mdc
@@ -43,6 +51,14 @@ files:
     target: .gitignore
     kind: framework
     scope: workspace
+  - template: templates/workspace/guides/weekly-lint.md
+    target: guides/weekly-lint.md
+    kind: framework
+    scope: workspace
+  - template: templates/workspace/tests/fixtures/grant-sample.md
+    target: tests/fixtures/grant-sample.md
+    kind: framework
+    scope: workspace
   - template: templates/workspace/tests/fixtures/playbook-sample.md
     target: tests/fixtures/playbook-sample.md
     kind: framework
@@ -57,6 +73,10 @@ files:
     kind: framework
     scope: workspace
     mode: "755"
+  - template: templates/scripts/lint_plugins/cs_playbook.py
+    target: scripts/lint_plugins/cs_playbook.py
+    kind: framework
+    scope: workspace
   - template: templates/scripts/membrain.py
     target: scripts/membrain.py
     kind: framework
@@ -74,6 +94,11 @@ files:
     mode: "755"
   - template: templates/scripts/spinoff.sh
     target: scripts/spinoff.sh
+    kind: framework
+    scope: workspace
+    mode: "755"
+  - template: templates/scripts/sync-brains.sh
+    target: scripts/sync-brains.sh
     kind: framework
     scope: workspace
     mode: "755"
@@ -122,6 +147,10 @@ files:
     target: brains/personal/inbox.md
     kind: content
     scope: personal
+  - template: templates/personal-brain/lint.yaml
+    target: brains/personal/.membrain/lint.yaml
+    kind: content
+    scope: personal
   - template: templates/personal-brain/membrain.yaml
     target: brains/personal/.membrain.yaml
     kind: content
@@ -142,22 +171,65 @@ files:
     target: brains/personal/sources.csv
     kind: content
     scope: personal
+  - template: templates/brain/claude-settings.json
+    target: brains/personal/.claude/settings.json
+    kind: framework
+    scope: personal
+  - template: templates/brain/cursor-hooks.json
+    target: brains/personal/.cursor/hooks.json
+    kind: framework
+    scope: personal
+  - template: templates/brain/cursor-rule.mdc
+    target: brains/personal/.cursor/rules/{{BRAIN_NAME}}.mdc
+    kind: framework
+    scope: personal
+  - template: templates/brain/github-lint.yml
+    target: brains/personal/.github/workflows/lint.yml
+    kind: framework
+    scope: personal
+  - template: templates/brain/log/README.md
+    target: brains/personal/log/README.md
+    kind: framework
+    scope: personal
+  - template: templates/brain/scripts/pull-if-stale.sh
+    target: brains/personal/scripts/pull-if-stale.sh
+    kind: framework
+    scope: personal
+    mode: "755"
+  - template: templates/brain/scripts/push-if-changed.sh
+    target: brains/personal/scripts/push-if-changed.sh
+    kind: framework
+    scope: personal
+    mode: "755"
+  - template: templates/brain/scripts/sync.sh
+    target: brains/personal/scripts/sync.sh
+    kind: framework
+    scope: personal
+    mode: "755"
   - template: templates/hooks/pre-commit
     target: brains/personal/.githooks/pre-commit
     kind: framework
     scope: personal
     mode: "755"
   - template: templates/scripts/lint.py
-    target: brains/personal/.membrain/lint.py
+    target: brains/personal/scripts/lint.py
     kind: framework
     scope: personal
     mode: "755"
+  - template: templates/scripts/lint_plugins/cs_playbook.py
+    target: brains/personal/scripts/lint_plugins/cs_playbook.py
+    kind: framework
+    scope: personal
   - template: templates/shared-brain/AGENTS.md
     target: brains/{{BRAIN_NAME}}/AGENTS.md
     kind: framework
     scope: shared
   - template: templates/shared-brain/CLAUDE.md
     target: brains/{{BRAIN_NAME}}/CLAUDE.md
+    kind: content
+    scope: shared
+  - template: templates/shared-brain/README.md
+    target: brains/{{BRAIN_NAME}}/README.md
     kind: content
     scope: shared
   - template: templates/shared-brain/SITEMAP.md
@@ -180,6 +252,10 @@ files:
     target: brains/{{BRAIN_NAME}}/inbox.md
     kind: content
     scope: shared
+  - template: templates/shared-brain/lint.yaml
+    target: brains/{{BRAIN_NAME}}/.membrain/lint.yaml
+    kind: content
+    scope: shared
   - template: templates/shared-brain/membrain.yaml
     target: brains/{{BRAIN_NAME}}/.membrain.yaml
     kind: content
@@ -196,13 +272,52 @@ files:
     target: brains/{{BRAIN_NAME}}/sources.csv
     kind: content
     scope: shared
+  - template: templates/brain/claude-settings.json
+    target: brains/{{BRAIN_NAME}}/.claude/settings.json
+    kind: framework
+    scope: shared
+  - template: templates/brain/cursor-hooks.json
+    target: brains/{{BRAIN_NAME}}/.cursor/hooks.json
+    kind: framework
+    scope: shared
+  - template: templates/brain/cursor-rule.mdc
+    target: brains/{{BRAIN_NAME}}/.cursor/rules/{{BRAIN_NAME}}.mdc
+    kind: framework
+    scope: shared
+  - template: templates/brain/github-lint.yml
+    target: brains/{{BRAIN_NAME}}/.github/workflows/lint.yml
+    kind: framework
+    scope: shared
+  - template: templates/brain/log/README.md
+    target: brains/{{BRAIN_NAME}}/log/README.md
+    kind: framework
+    scope: shared
+  - template: templates/brain/scripts/pull-if-stale.sh
+    target: brains/{{BRAIN_NAME}}/scripts/pull-if-stale.sh
+    kind: framework
+    scope: shared
+    mode: "755"
+  - template: templates/brain/scripts/push-if-changed.sh
+    target: brains/{{BRAIN_NAME}}/scripts/push-if-changed.sh
+    kind: framework
+    scope: shared
+    mode: "755"
+  - template: templates/brain/scripts/sync.sh
+    target: brains/{{BRAIN_NAME}}/scripts/sync.sh
+    kind: framework
+    scope: shared
+    mode: "755"
   - template: templates/hooks/pre-commit
     target: brains/{{BRAIN_NAME}}/.githooks/pre-commit
     kind: framework
     scope: shared
     mode: "755"
   - template: templates/scripts/lint.py
-    target: brains/{{BRAIN_NAME}}/.membrain/lint.py
+    target: brains/{{BRAIN_NAME}}/scripts/lint.py
     kind: framework
     scope: shared
     mode: "755"
+  - template: templates/scripts/lint_plugins/cs_playbook.py
+    target: brains/{{BRAIN_NAME}}/scripts/lint_plugins/cs_playbook.py
+    kind: framework
+    scope: shared

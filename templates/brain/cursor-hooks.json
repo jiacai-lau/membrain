@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeSubmitPrompt": [ { "command": "bash ./scripts/pull-if-stale.sh" } ],
+    "stop": [ { "command": "bash ./scripts/push-if-changed.sh" } ]
+  }
+}

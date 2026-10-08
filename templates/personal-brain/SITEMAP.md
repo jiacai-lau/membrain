@@ -16,3 +16,4 @@ Last checked: {{DATE}} · Maintainer: @{{OWNER}}
 | `sources.csv` | external systems and our access to them | @{{OWNER}} | update own rows | {{DATE}} | {{DATE}} |
 | `requests.csv` | open questions and missing information | @{{OWNER}} | update own rows | {{DATE}} | {{DATE}} |
 | `handoffs/` | longer notes, one file per version | @{{OWNER}} | one file per handoff | {{DATE}} | {{DATE}} |
+| `log/` | activity log, one file per month (`log/YYYY-MM.md`), format in `log/README.md` | @{{OWNER}} | append one entry per session | {{DATE}} | {{DATE}} |

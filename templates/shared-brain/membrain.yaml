@@ -1,7 +1,8 @@
-# Membrain brain config. Read by .membrain/lint.py.
+# Membrain brain config. Read by scripts/lint.py and scripts/sync.sh.
 name: {{BRAIN_NAME}}
 visibility: shared            # shared: anyone with repo access may read it; lint blocks private content
 owner: {{OWNER}}
+remote: {{REMOTE}}             # the only remote scripts/sync.sh pushes to
 editors: [{{EDITORS}}]
 created: {{DATE}}
 stale_days: 30                # SITEMAP rows and 'unverified' lines older than this get flagged

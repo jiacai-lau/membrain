@@ -1,0 +1,12 @@
+# Lint settings for this brain (read by scripts/lint.py). Content: the brain owner edits it; upgrades never overwrite it.
+# note_files: ["playbook/*.md"]      # files checked for duplicates, deadlines and entry format
+#                                    # (default: every .md except root README/AGENTS/CLAUDE/SITEMAP, log/, handoffs/, guides/)
+log_types: [fix, ticket, client, lint, answer]
+plugins: []                          # optional checks from scripts/lint_plugins/, e.g. [cs_playbook]
+# cs_playbook:                       # example plugin settings (see scripts/lint_plugins/cs_playbook.py)
+#   playbook: playbook/fixes.md
+#   fixes_heading: "## Fixes"
+#   tickets: tickets/log.md
+#   ticket_id: "T-\\d+"
+# privacy_allow: ["@example\\.com"]  # regexes the privacy check ignores (after the owner's review)
+# disable: [W002]                    # finding codes or names to turn off

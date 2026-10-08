@@ -35,6 +35,6 @@ S001,Client issue log,Notion database,https://...,@alice,authenticated-read,read
 ```
 
 `access_status` climbs a ladder; each step is separate and none implies the next:
-`identified` → `login-page-reachable` → `authenticated-read` → `role-confirmed` → `content-reviewed`.
+`identified` → `reachable` → `authenticated` → `permitted` → `reviewed`.
 A listed source has not necessarily been read. Keep stable ids (`S001`); a child item gets `S001-<short hash>`.
 Use a safe alias if the real name is sensitive.

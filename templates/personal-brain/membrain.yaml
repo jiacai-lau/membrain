@@ -2,6 +2,7 @@
 name: {{BRAIN_NAME}}
 visibility: personal
 owner: {{OWNER}}
+remote: {{REMOTE}}   # the ONLY remote scripts/sync.sh pushes to; must be a private repo
 created: {{DATE}}
 stale_days: 30
 inbox_days: 14

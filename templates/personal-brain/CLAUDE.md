@@ -2,7 +2,7 @@
 
 Private. Only @{{OWNER}} and @{{OWNER}}'s own agents read this. Never share this repo, never copy it into a shared brain, never mention it inside one.
 
-Everything starts here ("alpha" brain). When a topic grows into something others need, spin it off with `scripts/spinoff.sh` and leave a pointer here.
+Everything starts here. When a topic grows into something others need, spin it off (MEMBRAIN.md section B, `scripts/spinoff.sh`) and leave a pointer here.
 
 ## Boot
 1. Read `ROUTES.md` first. It says which brain owns which topic, for reads and for writes.
@@ -20,8 +20,18 @@ Everything starts here ("alpha" brain). When a topic grows into something others
 - Copies of facts a shared brain owns: keep a one-line pointer instead
 
 ## Writing
-Append one line in the entry format (`docs/ENTRY-FORMAT.md` in the workspace). Unsure where it goes: `inbox.md` with `route?`.
-Before moving anything to a shared brain: `scripts/spinoff.sh <brain> --move <file>` (privacy check + pointer stub), and @{{OWNER}}'s OK.
+- Append one line in the entry format (`docs/ENTRY-FORMAT.md` in the workspace). Unsure where it goes: `inbox.md` with `route?`, and ask @{{OWNER}}.
+- Read the file back and run `python3 scripts/lint.py` before saying it is saved.
+- Before moving anything to a shared brain: `scripts/spinoff.sh <brain> --move <file>` from the workspace (privacy check + pointer stub), and @{{OWNER}}'s OK.
+- **Never delete a line.** To retire one, append ` · SUPERSEDED YYYY-MM-DD: <reason>` and add the newer fact as a new line. No strikethrough, no edits.
+- Only @{{OWNER}} approves removing, merging or moving lines, and changes to folders, `CLAUDE.md`, `AGENTS.md`, `.claude/`, `.cursor/`, `.github/` or `scripts/`.
+
+## Sync and logging
+- Hooks in `.claude/` and `.cursor/` pull this brain when it is stale and commit + push when it changed. `scripts/sync.sh` pushes only to the private remote in `.membrain.yaml` (`remote:`); with none set it commits locally only.
+- At the end of a session that changed this brain, add one entry to `log/YYYY-MM.md` (format in `log/README.md`).
 
 ## Sends
 Draft. @{{OWNER}} sends.
+
+## Rules live here
+This file is the only rulebook for this brain (the workspace `AGENTS.md` covers routing across brains). Prompts and scheduled jobs point at it; they never copy it.

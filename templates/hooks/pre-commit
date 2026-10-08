@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
-# Membrain: block commits that add privacy leaks, duplicates or broken sitemap links.
+# Membrain: block commits that add privacy leaks (HIGH lint findings). Other findings are reported, not blocking.
 root="$(git rev-parse --show-toplevel)"
-exec python3 "$root/.membrain/lint.py" "$root"
+exec python3 "$root/scripts/lint.py" "$root" --strict --fail-on high

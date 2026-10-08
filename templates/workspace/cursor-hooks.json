@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeSubmitPrompt": [ { "command": "bash ./scripts/sync-brains.sh pull" } ],
+    "stop": [ { "command": "bash ./scripts/sync-brains.sh push" } ]
+  }
+}

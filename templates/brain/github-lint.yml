@@ -1,0 +1,20 @@
+name: Brain lint
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Lint the brain (warn only)
+        run: |
+          python3 scripts/lint.py --format md | tee lint-report.md
+          cat lint-report.md >> "$GITHUB_STEP_SUMMARY"
+          if grep -q '^| HIGH' lint-report.md; then echo "::warning title=Brain lint::HIGH findings (price, secret, email, grant amount or personal-brain mention). See the run summary."; fi
+          if grep -q '^| MED' lint-report.md; then echo "::warning title=Brain lint::Duplicate, stale-deadline or broken-link findings. See the run summary."; fi

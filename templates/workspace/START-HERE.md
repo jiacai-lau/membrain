@@ -1,30 +1,25 @@
 # Start here
 
-Paste one of these into your agent as the first message. They point at the live rules; they do not copy them.
+Paste one of these into your agent as the first message. They point at the live rules; they never copy them. The rules live in `AGENTS.md` (this workspace) and each brain's `CLAUDE.md`.
 
 ## Owner (has the personal brain)
 
 ```text
-I am <name>. Read AGENTS.md in this Membrain workspace and follow it. Then read brains/personal/ROUTES.md
-and brains/personal/STATE.md. Tell me the TLDR and the one next task. Before every new task and before
-any write, reread AGENTS.md and the target brain's CLAUDE.md. Say which files you opened. Draft any
-message; do not send it.
+I am <name>. Read AGENTS.md in this Membrain workspace and follow it. Then tell me the TLDR and the one next task.
 ```
 
 ## Teammate (one shared brain only)
 
 ```text
-I am <name>. Read CLAUDE.md in this folder and follow it. Read SITEMAP.md, then the file for my question.
-Append one dated line with my @name when we learn a reusable fix. Do not rewrite other people's lines.
-Draft replies; I send them.
+I am <name>. Read CLAUDE.md in this folder and follow it.
 ```
 
-## Scheduled job (nightly lint, inbox capture)
+## Weekly lint (scheduled job)
 
 ```text
-Read AGENTS.md in <workspace path> fresh (do not use a cached copy) and note its git commit or date.
-Run scripts/lint.py . and report only new errors and the inbox items older than 14 days. Change nothing
-else. If AGENTS.md cannot be read, stop and report that.
+Weekly Membrain lint. Read AGENTS.md in <workspace path> fresh, then follow guides/weekly-lint.md for every brain
+listed in brains/personal/brains.yaml. Propose fixes to me in one message; if there are none, say nothing.
+Change nothing until I say yes.
 ```
 
 ## Spin off a shareable brain / upgrade Membrain

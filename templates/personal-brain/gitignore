@@ -1,3 +1,7 @@
 .DS_Store
+*.swp
+~$*
+.~lock.*
 .qmd/
 __pycache__/
+lint-report.md

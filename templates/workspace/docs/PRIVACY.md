@@ -7,7 +7,7 @@ Personal brains may hold anything except credentials (use a password manager; st
 
 | Class | Examples | Lint |
 |---|---|---|
-| Money | prices, `$5`, `SGD 12`, quotations, grant amounts, salaries, margins, bank balances, loan figures, contract values | E101, W106 |
+| Money | prices, `$5`, `SGD 12`, quotations, grant amounts, salaries, margins, bank balances, loan figures, contract values | E101, E108, W106 |
 | Credentials | passwords, API keys, tokens, OTPs, session URLs, "password: …" | E105 |
 | Personal identifiers | NRIC/FIN/passport numbers, personal phone numbers, personal WhatsApp ids (`…@c.us`), home addresses, personal emails, bank account numbers | E102–E104 |
 | Commercial | proposals, terms, other clients' commercial files, pricing strategy, grant applications | W106 |
