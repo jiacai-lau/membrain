@@ -94,7 +94,7 @@ Standard library only. Produces the same workspace as section A.
 ├── .cursor/rules/membrain.mdc Cursor picks up the same rules
 ├── .membrain.yaml             Membrain version + file hashes, used for upgrades
 ├── docs/                      entry format, privacy rules, sitemap format
-├── scripts/                   lint, router, spin-off, upgrade, pull-all
+├── scripts/                   lint, router, spin-off, upgrade, catalog, pull-all
 └── brains/
     ├── personal/              PRIVATE git repo
     │   ├── ROUTES.md          which brain owns which topic
@@ -102,6 +102,7 @@ Standard library only. Produces the same workspace as section A.
     │   ├── SITEMAP.md         which file owns which kind of fact, last changed / last checked
     │   ├── STATE.md           TLDR and the one next task
     │   ├── inbox.md           proposed lines waiting for your decision
+    │   ├── installed/         catalog items you chose to install, one folder each
     │   └── howto/ projects/ pointers/ handoffs/
     └── support/               a spun-off shared brain: its own git repo, rules, sitemap and lint
 ```
@@ -130,6 +131,25 @@ flowchart TD
 
 More in [docs/concepts.md](docs/concepts.md).
 
+## Catalog
+
+The catalog is a shelf of ready-made items your agent can install into your workspace: brain kinds, skills, routines, agents (think of these as hires) and apps. Your agent shows you what is new or updated, and installs only what you pick.
+
+| Item | Type | Status | What it does |
+|---|---|---|---|
+| `cs-brain` | brain kind | live | A support brain: playbook of known fixes, a ticket log and a client list, with a lint check for fix format and ticket ids. Start one with `spin off support from catalog:cs-brain`. |
+| `weekly-brain-lint` | routine | built-untested | A weekly scheduled prompt: your agent lints every brain, checks what a script cannot, and proposes fixes for you to approve. |
+| `proposal-claim-review` | skill | spec | Checks a proposal against your list of product claims: OK, NOT OK or REQUIRE CHANGE, with numbered reasons. |
+| `client-health-dashboard` | app | spec | Design only: one green, amber or red signal per client, with an alert only on red. |
+| `onboarding-brain` | brain kind | idea | A go-live checklist the client ticks: Accept, Not accept, exceptions, sign-off. |
+| `client-onboarding-portal` + `onboarding-agent` | app + agent | idea | Concept: client uploads files, an agent drafts imports, an admin approves before anything is written. |
+
+<sub>Status: **live** is in daily use, **built-untested** works but needs one supervised run, **spec** is a design with no code, **idea** is a concept. Your agent never presents a spec or idea as working.</sub>
+
+- **Every item explains itself.** Each item has an `ITEM.md` with its purpose, who it's for, status, dependencies, the config it needs and the install steps your agent follows.
+- **Your organisation can have its own catalog.** Items that name your systems belong in a private catalog repo with the same layout (`scripts/catalog.py new-repo`). You list it under `catalogs:` in `brains.yaml` and your agent browses all catalogs together.
+- **Installs are tracked like everything else.** Installed files go to `brains/personal/installed/`. `.membrain.yaml` records each item's version and file hashes, so a newer version is offered as an update and your own edits are never silently overwritten.
+
 ## Usage prompts
 
 | Task | Prompt to paste | Your agent… | …and never, without your OK |
@@ -137,6 +157,7 @@ More in [docs/concepts.md](docs/concepts.md).
 | Set up | The [Quickstart](#quickstart) prompt (MEMBRAIN.md section A) | asks setup questions, generates the workspace, self-tests, creates a local private personal brain | pushes or creates a remote repo |
 | Spin off | `Read AGENTS.md in my Membrain workspace, then follow section B of https://raw.githubusercontent.com/jiacai-lau/membrain/main/MEMBRAIN.md to spin off a shareable brain called <name> for <purpose>. Show me which files would move and the privacy check result before moving anything, and don't create the GitHub repo or invite anyone until I say so.` | shows the move list, privacy-checks each file, creates the new brain and its route | moves a blocked file, creates the repo, invites anyone |
 | Upgrade | `In my Membrain workspace, follow section C of https://raw.githubusercontent.com/jiacai-lau/membrain/main/MEMBRAIN.md: run the upgrade dry run, show me the changelog and the proposed framework file changes, and apply only after I say OK. Never overwrite my content files.` | dry-runs, shows the changelog and each proposed file change | applies changes or touches your content |
+| Browse the catalog | `In my Membrain workspace, follow section D of https://raw.githubusercontent.com/jiacai-lau/membrain/main/MEMBRAIN.md: show me what is new or updated in every catalog I use, and install only the items I pick.` | lists new and updated items from every catalog, explains each one's status, installs your picks with their config | installs anything you didn't pick, or presents a spec or idea as working |
 
 Daily prompts for you, teammates and scheduled jobs are in the generated `START-HERE.md`.
 
@@ -150,6 +171,8 @@ Daily prompts for you, teammates and scheduled jobs are in the generated `START-
 
 **Can an agent change the rules or delete notes?** It can propose. Entries are append-only, inbox items need a person's approval, and upgrades only replace framework files you haven't edited.
 
+**Can I publish my team's own skills and routines?** Yes, in a private catalog repo with the same layout as the public one. The public catalog holds only generic items.
+
 More in [docs/faq.md](docs/faq.md).
 
 ## Roadmap
@@ -157,6 +180,7 @@ More in [docs/faq.md](docs/faq.md).
 - Search across brains with qmd, one collection per brain.
 - An MCP server that enforces the rules server-side and only exposes the brains each caller may see.
 - An LLM lint pass that finds contradictions and stale claims and proposes fixes into `inbox.md`.
+- Build the catalog's spec items (starting with the client health dashboard) and move built-untested items to live after real runs.
 
 ## Credits
 
@@ -164,6 +188,6 @@ Built by [Jiacai Lau](https://github.com/jiacai-lau). The compile-once, lint-reg
 
 ## Contributing and license
 
-Issues and pull requests are welcome. If you change a template, run `python3 scripts/build_manifest.py`, bump `VERSION`, add a `CHANGELOG.md` entry, and make sure `bash templates/workspace/tests/run.sh "$PWD"` passes. Map of this repo: [SITEMAP.md](SITEMAP.md).
+Issues and pull requests are welcome. If you change a template, run `python3 scripts/build_manifest.py`, bump `VERSION`, add a `CHANGELOG.md` entry, and make sure `bash templates/workspace/tests/run.sh "$PWD"` passes. New catalog items need an `ITEM.md`, an `INDEX.yaml` entry and a passing `python3 templates/scripts/catalog.py check catalog`; generic items only. Map of this repo: [SITEMAP.md](SITEMAP.md).
 
 License: see [LICENSE](LICENSE).

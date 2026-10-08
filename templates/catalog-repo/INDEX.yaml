@@ -1,0 +1,5 @@
+# {{CATALOG_NAME}}: a {{VISIBILITY}} Membrain catalog. Format: see README.md. Validate with: python3 scripts/catalog.py check
+name: {{CATALOG_NAME}}
+visibility: {{VISIBILITY}}
+version: 1
+items: []

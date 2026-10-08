@@ -48,6 +48,7 @@ Follow this file. It is the live rulebook. Reread it at every start or resume, b
 - Claim something is verified because a file exists or a title sounds right. Unknown is not zero. A mapped source has not necessarily been read.
 - Copy these rules into a prompt or a scheduled job. Prompts and jobs point at this file and each brain's `CLAUDE.md`, so they never run on an old copy.
 - Push a brain anywhere except its own remote, force-push, or make any repo public.
+- Install a catalog item the person did not pick, present a `spec` or `idea` item as working, or schedule a routine yourself. Catalog installs follow `MEMBRAIN.md` section D (`scripts/catalog.py`).
 
 ## 5. Weekly lint
 

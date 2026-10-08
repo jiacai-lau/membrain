@@ -63,3 +63,17 @@ Paste the upgrade prompt from the README. Your agent runs a dry run, shows you t
 
 **Will an upgrade touch my notes?**
 No. Upgrades only replace framework files you haven't edited. If you edited one, it shows as a conflict and needs your explicit OK. Content files are never proposed.
+
+## Catalog
+
+**What is the difference between a template and a catalog item?**
+Templates are what every workspace gets at setup and upgrade. Catalog items are optional: you browse them and install the ones you want.
+
+**Is a "spec" item something I can run?**
+No. A spec is a design document and an idea is a concept. Your agent installs them only as documents (with `--docs`) and says so. Only live and built-untested items install as working items.
+
+**Where do my organisation's own items go?**
+In a private catalog repo with the same layout (`scripts/catalog.py new-repo`). Register it under `catalogs:` in `brains/personal/brains.yaml`. The public catalog never holds client names, internal system details or prices.
+
+**Will a catalog update overwrite my changes?**
+No. If you edited an installed file, the update stops with a conflict and your agent shows you the difference first.

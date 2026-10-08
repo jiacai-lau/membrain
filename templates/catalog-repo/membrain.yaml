@@ -1,0 +1,8 @@
+# Membrain catalog repo. Read by scripts/lint.py (visibility: shared = privacy checks on; others read this repo).
+kind: catalog
+name: {{CATALOG_NAME}}
+visibility: shared
+catalog_visibility: {{VISIBILITY}}
+repo: {{REPO}}
+owner: {{OWNER}}
+created: {{DATE}}

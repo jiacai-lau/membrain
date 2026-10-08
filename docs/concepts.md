@@ -111,6 +111,16 @@ Membrain itself contains no knowledge. It's a set of templates listed in `MANIFE
 
 Your workspace records the `membrain_version` it was made from and a hash of every generated file. To upgrade, your agent fetches the new version, compares hashes and shows you three kinds of change: files Membrain updated that you didn't touch, new framework files, and conflicts where you edited a framework file yourself. It applies only what you approve and never touches content.
 
+## The catalog
+
+The catalog is a shelf of installable items, separate from the templates every workspace gets. An item is a folder with an `ITEM.md` (purpose, who it's for, status, dependencies, config, install steps) and its files. There are six types: **brain kinds** (a shape for a new shared brain, such as a support brain), **skills** (a procedure an agent follows), **routines** (a scheduled prompt), **agents** (a hire with a defined job), **apps**, and **data sources** (what a system's fields mean).
+
+Each item has a status, and your agent says it out loud: **live** (in daily use), **built-untested** (works, needs one supervised run), **spec** (a design, no code) or **idea**. Spec and idea items install only as documents.
+
+Catalogs come from more than one place. The public Membrain catalog holds generic items only. Anything that names your organisation's systems lives in a private catalog repo with the same layout, listed under `catalogs:` in your `brains.yaml`. Your agent merges all of them when it shows you what's new.
+
+Installing is explicit. Your agent installs only what you pick, asks for the config the item needs, writes the files to `brains/personal/installed/<type>/<id>/` and records the version and file hashes in `.membrain.yaml`. A newer version shows up as an update; a file you edited shows up as a conflict instead of being overwritten. A brain kind isn't installed: you spin off a new shared brain from it. Routines and agents do nothing until you register their prompt in your agent platform; Membrain never schedules anything itself.
+
 ## Where the ideas come from
 
 - **Andrej Karpathy's LLM Wiki**: compile knowledge once into markdown and keep it current, lint it regularly, keep a greppable log.

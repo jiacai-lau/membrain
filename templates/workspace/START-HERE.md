@@ -34,3 +34,10 @@ nobody until I say so.
 Follow section C of <source>/MEMBRAIN.md: run scripts/upgrade.sh (dry run), show me the changelog and the
 proposed framework changes, and apply only after I say OK. Never overwrite my content files.
 ```
+
+## Browse the catalog
+
+```text
+Follow section D of <source>/MEMBRAIN.md (source is in .membrain.yaml): run scripts/catalog.py diff, show me what is
+new or updated in every catalog I use with each item's status, and install only the items I pick.
+```

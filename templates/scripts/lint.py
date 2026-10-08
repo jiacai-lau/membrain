@@ -188,7 +188,7 @@ SEVERITY = {"E101": "HIGH", "E102": "HIGH", "E103": "HIGH", "E104": "HIGH", "E10
 DEFAULTS = {
     # note files: duplicate, near-duplicate, deadline and entry-format checks run on these
     "note_files": ["*.md", "**/*.md"],
-    "note_exclude": ["README.md", "AGENTS.md", "CLAUDE.md", "SITEMAP.md", "log/**", "handoffs/**", "guides/**"],
+    "note_exclude": ["README.md", "AGENTS.md", "CLAUDE.md", "SITEMAP.md", "log/**", "handoffs/**", "guides/**", "installed/**"],
     # files the privacy checks skip (Membrain's own docs that describe the rules)
     "privacy_skip": ["AGENTS.md", "log/README.md", "handoffs/README.md"],
     "log_types": ["fix", "ticket", "client", "lint", "answer"],
@@ -509,6 +509,8 @@ def sitemap_checks(brain, files, today, stale_days, check_orphans):
         for p in files:
             rp = p.resolve()
             if p.name == "SITEMAP.md" or p.suffix.lower() not in TEXT_EXT:
+                continue
+            if match_any(brain.rel(p), ["installed/**"]):   # catalog installs: tracked in .membrain.yaml
                 continue
             if rp in listed or any(d in rp.parents for d in listed_dirs):
                 continue

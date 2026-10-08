@@ -1,0 +1,5 @@
+## Folders
+| Folder | Use it for |
+|---|---|
+| checklist.md (or `checklists/<client>.md`) | Go-live / handover acceptance form |
+| log | One entry per session |

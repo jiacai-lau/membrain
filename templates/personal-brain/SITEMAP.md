@@ -17,3 +17,4 @@ Last checked: {{DATE}} · Maintainer: @{{OWNER}}
 | `requests.csv` | open questions and missing information | @{{OWNER}} | update own rows | {{DATE}} | {{DATE}} |
 | `handoffs/` | longer notes, one file per version | @{{OWNER}} | one file per handoff | {{DATE}} | {{DATE}} |
 | `log/` | activity log, one file per month (`log/YYYY-MM.md`), format in `log/README.md` | @{{OWNER}} | append one entry per session | {{DATE}} | {{DATE}} |
+| `installed/` | catalog items you installed (skills, routines, agents, apps), one folder each | @{{OWNER}} | written by scripts/catalog.py; edit only after OK | {{DATE}} | {{DATE}} |

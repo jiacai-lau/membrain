@@ -1,0 +1,9 @@
+## Folders
+| Path | Use it for |
+|---|---|
+| `playbook/fixes.md` | Known fix for a symptom: one line under `## Fixes` |
+| `tickets/log.md` | Filed client issues and how to file; one line per ticket (`{{TICKET_PREFIX}}` ids) |
+| `clients/index.md` | Client name, account id, stage. Nothing else |
+| `log/` | One entry per session (format in `log/README.md`) |
+
+A fix that mentions a ticket id must have that ticket in `tickets/log.md` (lint plugin `cs_playbook`).

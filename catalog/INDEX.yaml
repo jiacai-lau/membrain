@@ -1,0 +1,78 @@
+# Membrain public catalog. Generic items only. Org-specific items live in private catalog repos
+# registered under catalogs: in brains/personal/brains.yaml. Agents merge every source when browsing.
+# Each entry: id, type, version, status (live | built-untested | spec | idea), summary, depends_on,
+# requires_config, source (item folder in this catalog), files (paths in that folder besides ITEM.md;
+# agents fetch by URL, so every file must be listed). Validate with: scripts/catalog.py check
+name: membrain
+visibility: public
+version: 1
+items:
+  - id: cs-brain
+    type: brain-kind
+    version: "1.0.0"
+    status: live
+    summary: "Client-support brain: playbook of known fixes, tickets and client names. Lint plugin for playbook format and ticket ids."
+    depends_on: []
+    requires_config: [TICKET_PREFIX]
+    source: brain-kind/cs-brain
+    files: [CLAUDE.md.overlay, playbook/fixes.md, tickets/log.md, clients/index.md, lint.yaml, SITEMAP.rows]
+
+  - id: onboarding-brain
+    type: brain-kind
+    version: "0.1.0"
+    status: idea
+    summary: "Go-live / handover acceptance brain: a question-set skeleton the client ticks Accept or Not accept, with an exceptions table."
+    depends_on: []
+    requires_config: []
+    source: brain-kind/onboarding-brain
+    files: [CLAUDE.md.overlay, checklist.md, SITEMAP.rows]
+
+  - id: weekly-brain-lint
+    type: routine
+    version: "1.0.0"
+    status: built-untested
+    summary: "Weekly editor pass over every brain: run the lint, check contradictions a script cannot, propose fixes to the owner."
+    depends_on: []
+    requires_config: [REPO_OR_WORKSPACE, APPROVER, APPLY_PATH]
+    source: routine/weekly-brain-lint
+    files: [PROMPT.md]
+
+  - id: proposal-claim-review
+    type: skill
+    version: "0.1.0"
+    status: spec
+    summary: "Review a product or marketing proposal against a claims list: OK / NOT OK / REQUIRE CHANGE, one message per proposal."
+    depends_on: []
+    requires_config: [CLAIMS_LIST_PATH, CHANNEL]
+    source: skill/proposal-claim-review
+    files: [SKILL.md]
+
+  - id: client-health-dashboard
+    type: app
+    version: "0.1.0"
+    status: spec
+    summary: "SPEC ONLY. Collector → green/amber/red score per client → Notion columns (v1) or a static page behind an auth proxy (v2). Alert on red only."
+    depends_on: []
+    requires_config: []
+    source: app/client-health-dashboard
+    files: [DESIGN.md]
+
+  - id: client-onboarding-portal
+    type: app
+    version: "0.1.0"
+    status: idea
+    summary: "IDEA. Chat intake and file upload into a fixed folder structure; an agent drafts imports; an admin approves before any write."
+    depends_on: [onboarding-agent]
+    requires_config: []
+    source: app/client-onboarding-portal
+    files: [CONCEPT.md]
+
+  - id: onboarding-agent
+    type: agent
+    version: "0.1.0"
+    status: idea
+    summary: "IDEA. Hire that drafts customer, item and price imports from uploaded files, never writes without an admin's yes."
+    depends_on: []
+    requires_config: []
+    source: agent/onboarding-agent
+    files: [AGENT.md]

@@ -3,13 +3,15 @@
 # target   = path in the user's workspace; {{BRAIN_NAME}} is filled at spin-off
 # kind     = framework (upgradable: replaced by 'upgrade --apply' when unchanged locally)
 #            content   (generated once, then the user's; never overwritten)
-# scope    = workspace (setup) | personal (setup) | shared (each spin-off)
+# scope    = workspace (setup) | personal (setup) | shared (each spin-off) | catalog-repo (catalog.py new-repo)
 # mode     = file mode to set (755 = executable)
-membrain_version: 0.3.0
+# raw      = true: copy the template as is, do not fill placeholders (test fixtures that contain {{...}})
+membrain_version: 0.4.0
 placeholders:
   - workspace: [OWNER, DATE, MEMBRAIN_VERSION, SOURCE_URL]
   - personal: [BRAIN_NAME, OWNER, DATE, REMOTE, ALIASES]
   - shared: [BRAIN_NAME, OWNER, DATE, DESCRIPTION, TOPICS, EDITORS, REPO, REMOTE, OBJECTIVES]
+  - catalog-repo: [CATALOG_NAME, OWNER, DATE, REPO, VISIBILITY]
 files:
   - template: templates/workspace/AGENTS.md
     target: AGENTS.md
@@ -55,6 +57,31 @@ files:
     target: guides/weekly-lint.md
     kind: framework
     scope: workspace
+  - template: templates/workspace/tests/catalog-fixture/INDEX.yaml
+    target: tests/catalog-fixture/INDEX.yaml
+    kind: framework
+    scope: workspace
+    raw: true
+  - template: templates/workspace/tests/catalog-fixture/app/tiny-dash/DESIGN.md
+    target: tests/catalog-fixture/app/tiny-dash/DESIGN.md
+    kind: framework
+    scope: workspace
+    raw: true
+  - template: templates/workspace/tests/catalog-fixture/app/tiny-dash/ITEM.md
+    target: tests/catalog-fixture/app/tiny-dash/ITEM.md
+    kind: framework
+    scope: workspace
+    raw: true
+  - template: templates/workspace/tests/catalog-fixture/skill/label-check/ITEM.md
+    target: tests/catalog-fixture/skill/label-check/ITEM.md
+    kind: framework
+    scope: workspace
+    raw: true
+  - template: templates/workspace/tests/catalog-fixture/skill/label-check/SKILL.md
+    target: tests/catalog-fixture/skill/label-check/SKILL.md
+    kind: framework
+    scope: workspace
+    raw: true
   - template: templates/workspace/tests/fixtures/grant-sample.md
     target: tests/fixtures/grant-sample.md
     kind: framework
@@ -65,6 +92,11 @@ files:
     scope: workspace
   - template: templates/workspace/tests/run.sh
     target: tests/run.sh
+    kind: framework
+    scope: workspace
+    mode: "755"
+  - template: templates/scripts/catalog.py
+    target: scripts/catalog.py
     kind: framework
     scope: workspace
     mode: "755"
@@ -146,6 +178,10 @@ files:
   - template: templates/personal-brain/inbox.md
     target: brains/personal/inbox.md
     kind: content
+    scope: personal
+  - template: templates/personal-brain/installed/README.md
+    target: brains/personal/installed/README.md
+    kind: framework
     scope: personal
   - template: templates/personal-brain/lint.yaml
     target: brains/personal/.membrain/lint.yaml
@@ -321,3 +357,51 @@ files:
     target: brains/{{BRAIN_NAME}}/scripts/lint_plugins/cs_playbook.py
     kind: framework
     scope: shared
+  - template: templates/catalog-repo/INDEX.yaml
+    target: INDEX.yaml
+    kind: content
+    scope: catalog-repo
+  - template: templates/catalog-repo/README.md
+    target: README.md
+    kind: content
+    scope: catalog-repo
+  - template: templates/catalog-repo/github-lint.yml
+    target: .github/workflows/lint.yml
+    kind: framework
+    scope: catalog-repo
+  - template: templates/catalog-repo/gitignore
+    target: .gitignore
+    kind: framework
+    scope: catalog-repo
+  - template: templates/catalog-repo/lint.yaml
+    target: .membrain/lint.yaml
+    kind: content
+    scope: catalog-repo
+  - template: templates/catalog-repo/membrain.yaml
+    target: .membrain.yaml
+    kind: content
+    scope: catalog-repo
+  - template: templates/hooks/pre-commit
+    target: .githooks/pre-commit
+    kind: framework
+    scope: catalog-repo
+    mode: "755"
+  - template: templates/scripts/lint.py
+    target: scripts/lint.py
+    kind: framework
+    scope: catalog-repo
+    mode: "755"
+  - template: templates/scripts/membrain.py
+    target: scripts/membrain.py
+    kind: framework
+    scope: catalog-repo
+    mode: "755"
+  - template: templates/scripts/catalog.py
+    target: scripts/catalog.py
+    kind: framework
+    scope: catalog-repo
+    mode: "755"
+  - template: templates/scripts/lint_plugins/cs_playbook.py
+    target: scripts/lint_plugins/cs_playbook.py
+    kind: framework
+    scope: catalog-repo

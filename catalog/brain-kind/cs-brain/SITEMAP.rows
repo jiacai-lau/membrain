@@ -1,0 +1,2 @@
+| `tickets/log.md` | filed client issues (one line each) and how to file | @{{OWNER}} | append one line | {{DATE}} | {{DATE}} |
+| `clients/index.md` | client name, account id, stage | @{{OWNER}} | append one row | {{DATE}} | {{DATE}} |

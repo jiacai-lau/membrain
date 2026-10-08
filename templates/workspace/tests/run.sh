@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Membrain self-test. Generates a throwaway workspace from Membrain (BASE = raw URL or local folder),
 # then checks lint (core + plugin), spin-off with a privacy block, routing, the pre-commit hook, the sync scripts
-# (own-remote only, never force), the log format and a no-op upgrade.
+# (own-remote only, never force), the log format, the catalog (list/diff/install from a public and a private source,
+# spin-off from a brain kind) and a no-op upgrade.
 # usage: tests/run.sh [BASE]     (default BASE: 'source' in .membrain.yaml)      exit 0 = all passed
 set -uo pipefail
+# A pipe into grep -c (not grep -q) reads all input, so pipefail never sees SIGPIPE from the producer.
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 BASE="${1:-$(python3 -c "import json,re,sys;t=open('$HERE/.membrain.yaml').read();print(json.loads(re.search(r'^source: (.*)$',t,re.M).group(1)))" 2>/dev/null)}"
 [[ -n "$BASE" ]] || { echo "usage: tests/run.sh BASE"; exit 2; }
@@ -46,15 +48,15 @@ check "private file NOT moved"                 "[ ! -e brains/team/projects/a/de
 check "route registered + ROUTES refreshed"    "grep -q 'name: team' brains/personal/brains.yaml && grep -q '| team | shared |' brains/personal/ROUTES.md"
 check "shared brain never names personal"      "! grep -rqi 'alpha-notes' brains/team --exclude-dir=.git && ! grep -rqi 'brains/personal' brains/team --exclude-dir=.git --exclude-dir=scripts"
 check "workspace lints clean (--strict)"       "python3 scripts/lint.py . --strict >/dev/null"
-check "clean fix routes to shared brain"       "scripts/route.py classify 'label printer prints blank, reload the roll fix' | grep -q 'WRITE -> team'"
-check "money routes to personal"               "scripts/route.py classify 'quotation of SGD 500' | grep -q 'WRITE -> personal'"
+check "clean fix routes to shared brain"       "scripts/route.py classify 'label printer prints blank, reload the roll fix' | grep >/dev/null -c 'WRITE -> team'"
+check "money routes to personal"               "scripts/route.py classify 'quotation of SGD 500' | grep >/dev/null -c 'WRITE -> personal'"
 
 printf -- '- Scanner beeps twice and stops\n' >> brains/team/playbook/fixes.md
 sed -i 's/^plugins: \[\]/plugins: [cs_playbook]/' brains/team/.membrain/lint.yaml
 out="$(python3 brains/team/scripts/lint.py)"
 check "cs_playbook plugin (enabled by config) flags format" "grep -q 'P201 playbook-format' <<<\"\$out\""
 git -C brains/team checkout -q -- . 
-check "plugin is off by default"               "! python3 brains/team/scripts/lint.py | grep -q P201"
+check "plugin is off by default"               "! python3 brains/team/scripts/lint.py | grep >/dev/null -c P201"
 mkdir -p brains/team/log && printf '## [2026-10-08 10:00] fix | Client A | added printer fix\nwho/tool: t · files: playbook/clean.md\n\n## 2026-10-08 bad heading\n' > brains/team/log/2026-10.md
 check "log format checked (L070)"              "[ \$(python3 brains/team/scripts/lint.py | grep -c L070) = 1 ]"
 rm -f brains/team/log/2026-10.md
@@ -71,14 +73,14 @@ check "sync refuses a remote that is not the brain's own" "[ $rc = 1 ] && [ -z \
 git init -q --bare "$TMP/team.git"; git -C brains/team remote set-url origin "$TMP/team.git"
 sed -i "s#^remote: .*#remote: $TMP/team.git#" brains/team/.membrain.yaml
 (cd brains/team && bash scripts/sync.sh "playbook: cutter fix" >/dev/null 2>&1); rc=$?
-check "sync commits and pushes to its own remote" "[ $rc = 0 ] && git --git-dir=$TMP/team.git log main --oneline | grep -q 'cutter fix'"
+check "sync commits and pushes to its own remote" "[ $rc = 0 ] && git --git-dir=$TMP/team.git log main --oneline | grep >/dev/null -c 'cutter fix'"
 echo '- Label curls → store rolls flat · Client A · 2026-10-08 · @alice · unverified' >> brains/team/playbook/fixes.md
 bash brains/team/scripts/push-if-changed.sh; rc=$?
-check "push-if-changed syncs and exits 0"      "[ $rc = 0 ] && [ -z \"\$(git -C brains/team status --porcelain)\" ] && git --git-dir=$TMP/team.git log main --oneline | grep -q 'agent update'"
+check "push-if-changed syncs and exits 0"      "[ $rc = 0 ] && [ -z \"\$(git -C brains/team status --porcelain)\" ] && git --git-dir=$TMP/team.git log main --oneline | grep >/dev/null -c 'agent update'"
 bash brains/team/scripts/pull-if-stale.sh; rc=$?
 check "pull-if-stale exits 0"                  "[ $rc = 0 ]"
 echo '- private note · 2026-10-08 · @alice' >> brains/personal/inbox.md
-(cd brains/personal && bash scripts/sync.sh "inbox" 2>&1 | grep -q 'Committed locally only'); rc=$?
+(cd brains/personal && bash scripts/sync.sh "inbox" 2>&1 | grep >/dev/null -c 'Committed locally only'); rc=$?
 check "personal brain without a remote commits locally only" "[ $rc = 0 ] && [ -z \"\$(git -C brains/personal remote)\" ]"
 git -C brains/personal remote add origin "$TMP/wrong.git"
 echo '- another note · 2026-10-08 · @alice' >> brains/personal/inbox.md
@@ -87,8 +89,51 @@ check "personal brain never pushes to a foreign remote" "[ $rc = 1 ] && [ -z \"\
 git -C brains/personal remote remove origin; git -C brains/personal checkout -q -- .
 check "workspace sync hook never fails"        "bash scripts/sync-brains.sh pull && bash scripts/sync-brains.sh push"
 
+# ---- catalog: public (BASE/catalog) + a private source (synthetic fixture copy registered in brains.yaml)
+CAT="python3 scripts/catalog.py --base $BASE"
+[ ! -d "$BASE/catalog" ] || { $CAT check "$BASE/catalog" >"$TMP/cat-check.log" 2>&1; rc=$?; }
+check "public catalog validates (INDEX, ITEM.md, files)" "[ ! -d '$BASE/catalog' ] || [ \${rc:-1} = 0 ]"
+cp -r tests/catalog-fixture "$TMP/acme-cat"
+python3 - "$TMP/acme-cat" <<'PY'
+import re, sys
+p = "brains/personal/brains.yaml"; t = open(p).read()
+t = t.replace("    visibility: public\n", f"    visibility: public\n  - name: acme-private\n    url: {sys.argv[1]}\n    visibility: private\n", 1)
+open(p, "w").write(t)
+PY
+out="$($CAT list)"
+check "catalog list merges public and private sources" "grep -q 'cs-brain .* membrain' <<<\"\$out\" && grep -q 'label-check .* acme-private' <<<\"\$out\""
+check "catalog diff shows new items"           "$CAT diff | grep >/dev/null -c 'NEW .*label-check@acme-private'"
+$CAT install label-check >/dev/null 2>&1; rc=$?
+check "install refuses missing config"         "[ $rc = 1 ] && [ ! -e brains/personal/installed/skill/label-check ]"
+$CAT install label-check --set PRINTER=front-desk >"$TMP/inst.log" 2>&1; rc=$?
+check "install writes, fills config, records, commits" "[ $rc = 0 ] && grep -q 'Label check on front-desk' brains/personal/installed/skill/label-check/SKILL.md && grep -q 'id: \"label-check\"' .membrain.yaml && git -C brains/personal log --oneline | grep >/dev/null -c 'catalog: install label-check'"
+$CAT install tiny-dash >/dev/null 2>&1; rc1=$?; $CAT install proposal-claim-review >/dev/null 2>&1; rc2=$?
+check "spec/idea items refused without --docs (both sources)" "[ $rc1 = 1 ] && [ $rc2 = 1 ]"
+$CAT install tiny-dash --docs --with-deps >/dev/null 2>&1; rc=$?
+check "--docs --with-deps installs the spec and its dependency" "[ $rc = 0 ] && [ -f brains/personal/installed/app/tiny-dash/DESIGN.md ]"
+$CAT install cs-brain >/dev/null 2>&1; rc=$?
+check "brain kinds are not installed, only spun off" "[ $rc = 1 ]"
+sed -i 's/version: "1.0.0"/version: "1.1.0"/' "$TMP/acme-cat/INDEX.yaml"; sed -i 's/Version:\*\* 1.0.0/Version:** 1.1.0/' "$TMP/acme-cat/skill/label-check/ITEM.md"
+echo '3. Note the result.' >> "$TMP/acme-cat/skill/label-check/SKILL.md"
+check "catalog diff shows an UPDATED item"     "$CAT diff | grep >/dev/null -c 'UPDATED  label-check@acme-private  1.0.0 -> 1.1.0'"
+echo 'my own step' >> brains/personal/installed/skill/label-check/SKILL.md
+$CAT install label-check --set PRINTER=front-desk >/dev/null 2>&1; rc=$?
+check "update refuses to overwrite local edits (CONFLICT)" "[ $rc = 1 ] && grep -q 'my own step' brains/personal/installed/skill/label-check/SKILL.md"
+$CAT install label-check --set PRINTER=front-desk --force-local >/dev/null 2>&1; rc=$?
+check "--force-local updates after OK"         "[ $rc = 0 ] && grep -q 'Note the result' brains/personal/installed/skill/label-check/SKILL.md && grep -q 'version: \"1.1.0\"' .membrain.yaml"
+check "personal brain lints clean with installs" "python3 brains/personal/scripts/lint.py brains/personal --strict --fail-on med >/dev/null"
+scripts/spinoff.sh onb --from catalog:onboarding-brain --base "$BASE" >/dev/null 2>&1; rc=$?
+check "spin-off refuses an idea brain kind"    "[ $rc = 1 ] && [ ! -e brains/onb ]"
+scripts/spinoff.sh help --from catalog:cs-brain --set 'TICKET_PREFIX=T-\d+' --topics "client issue,known fix" --org acme --base "$BASE" >"$TMP/spin2.log" 2>&1; rc=$?
+check "spin-off from catalog:cs-brain"         "[ $rc = 0 ] && [ -f brains/help/tickets/log.md ] && [ -f brains/help/clients/index.md ] && grep -q '## Folders' brains/help/CLAUDE.md && grep -q 'plugins: \[cs_playbook\]' brains/help/.membrain/lint.yaml && grep -q 'path: \"brains/help\"' .membrain.yaml"
+check "brain registered under brains:, catalogs intact" "python3 scripts/route.py table | grep >/dev/null -c '| help | shared |' && $CAT list | grep >/dev/null -c acme-private"
+printf -- '- Report arrives empty → set the filter to this week · Client A · 2026-10-08 · @alice · verified · src:T-12\n' >> brains/help/playbook/fixes.md
+check "cs-brain plugin flags a ticket id missing from tickets/log.md" "python3 brains/help/scripts/lint.py | grep >/dev/null -c 'P202 missing-ticket'"
+git -C brains/help checkout -q -- .
+
 up="$(scripts/upgrade.sh --base "$BASE")"
 check "upgrade dry-run on a fresh workspace proposes nothing" "grep -q 'none: every framework file is current' <<<\"\$up\""
+check "upgrade also reports the catalog"       "grep -q '^Catalog' <<<\"\$up\" && grep -q 'NEW .*client-health-dashboard@membrain' <<<\"\$up\""
 
 echo "--- $pass passed, $fail failed"
 [ $fail = 0 ]

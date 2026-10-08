@@ -1,0 +1,24 @@
+# Synthetic private catalog used by tests/run.sh (same layout as a real private catalog repo).
+name: acme-private
+visibility: private
+version: 1
+items:
+  - id: label-check
+    type: skill
+    version: "1.0.0"
+    status: live
+    summary: "Synthetic test skill: check a printer label before printing."
+    depends_on: []
+    requires_config: [PRINTER]
+    source: skill/label-check
+    files: [SKILL.md]
+
+  - id: tiny-dash
+    type: app
+    version: "0.1.0"
+    status: spec
+    summary: "Synthetic test app spec that depends on the skill."
+    depends_on: [label-check]
+    requires_config: []
+    source: app/tiny-dash
+    files: [DESIGN.md]

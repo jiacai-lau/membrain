@@ -7,7 +7,9 @@ templates. Nobody clones Membrain; this script fetches MANIFEST.yaml and the tem
   membrain.py spinoff NAME [--owner NAME] [--description ..] [--topics "a,b"] [--objectives "o1; o2"] [--keywords "x,y"]
                       [--never "price,grant,..."] [--editors "p,q"] [--org ORG]
                       [--move PATH[:NEWPATH]]... [--accept-warnings] [--base <url|path>]
+                      [--from catalog:<id>[@<source>]] [--set KEY=VALUE]...
   membrain.py upgrade [--base <url|path>] [--apply] [--force-local]     (dry-run unless --apply)
+  (catalog browsing and installs: scripts/catalog.py, which uses the catalog functions below)
 
 Rules it keeps: never pushes, never calls GitHub, never makes anything public, never overwrites a
 'content' file. Framework files are only replaced by 'upgrade --apply'.
@@ -42,6 +44,17 @@ def normalize_base(base: str) -> str:
 
 
 def fetch(base: str, rel: str) -> str:
+    if base.startswith("gh:"):  # private repo through the GitHub CLI's own login: gh:owner/repo[@ref][/sub/dir]
+        m = re.match(r"^gh:([^/@]+)/([^/@]+)(?:@([^/]+))?(?:/(.*))?$", base)
+        if not m:
+            raise ValueError(f"bad gh: source {base!r} (want gh:owner/repo[@ref][/dir])")
+        path = "/".join(x for x in (m.group(4), rel) if x)
+        r = subprocess.run(["gh", "api", "-H", "Accept: application/vnd.github.raw",
+                            f"repos/{m.group(1)}/{m.group(2)}/contents/{path}?ref={m.group(3) or 'main'}"],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            raise FileNotFoundError(f"{base}/{rel}: {r.stderr.strip()[:200]}")
+        return r.stdout
     if re.match(r"^https?://", base):
         with urllib.request.urlopen(f"{base}/{rel}", timeout=30) as r:
             return r.read().decode("utf-8")
@@ -127,6 +140,13 @@ def dump_state(st: dict) -> str:
         out.append(f"  - path: {q(g['path'])}")
         for k in ("template", "kind", "scope", "vars", "sha256"):
             out.append(f"    {k}: {q(g[k])}")
+    if st.get("catalog_installed"):  # written only once something is installed (setup output is unchanged)
+        out.append("catalog_installed:")
+        for c in st["catalog_installed"]:
+            out.append(f"  - id: {q(c['id'])}")
+            for k in CATALOG_STATE_KEYS:
+                v = c.get(k, "")
+                out.append(f"    {k}: {q(json.dumps(v, sort_keys=True) if k in ('config', 'files') else v)}")
     return "\n".join(out) + "\n"
 
 
@@ -140,9 +160,20 @@ def load_state(ws: Path) -> dict:
         vs = dict(vs)
         vid = vs.pop("id")
         varsets.append({"id": vid, "vars": vs})
+    installed = []
+    for c in d.get("catalog_installed", []) or []:
+        if not isinstance(c, dict):
+            continue
+        c = dict(c)
+        for k in ("config", "files"):
+            try:
+                c[k] = json.loads(c.get(k) or "{}")
+            except ValueError:
+                c[k] = {}
+        installed.append(c)
     return {"membrain_version": d.get("membrain_version", ""), "source": d.get("source", ""),
             "owner": d.get("owner", ""), "generated_at": d.get("generated_at", ""),
-            "varsets": varsets, "generated": list(d.get("generated", []))}
+            "varsets": varsets, "generated": list(d.get("generated", [])), "catalog_installed": installed}
 
 
 # ------------------------------------------------------------------ rendering
@@ -183,7 +214,8 @@ def generate(base, man, ws: Path, scope: str, vars_: dict, varset_id: str, overw
             continue
         try:
             target = render(f["target"], vars_, f["target"])
-            text = render(fetch(base, f["template"]), vars_, f["template"])
+            raw = fetch(base, f["template"])
+            text = raw if f.get("raw") else render(raw, vars_, f["template"])
         except Unfilled as e:
             sys.exit(f"membrain: {e}")
         dest = ws / target
@@ -220,6 +252,166 @@ def csv_yaml(s: str) -> str:
 
 def today(arg=None) -> str:
     return arg or os.environ.get("MB_TODAY") or dt.date.today().isoformat()
+
+
+# ------------------------------------------------------------------ catalog (MEMBRAIN.md section D; CLI: scripts/catalog.py)
+# A catalog source is a folder holding INDEX.yaml and one folder per item (<type>/<id>/ITEM.md + files). The public one
+# is <BASE>/catalog. Private ones (org-specific) are listed under catalogs: in brains/personal/brains.yaml with a url that
+# is a raw base, a github.com URL, gh:owner/repo[@ref] (uses the GitHub CLI's login) or a local folder.
+CATALOG_TYPES = ("brain-kind", "agent", "routine", "skill", "app", "data-source")
+CATALOG_STATUSES = ("live", "built-untested", "spec", "idea")
+INSTALLABLE = ("live", "built-untested")
+CATALOG_STATE_KEYS = ("type", "version", "status", "source", "path", "installed_at", "config", "files")
+CODE_EXT = (".py", ".js", ".mjs", ".ts", ".sh", ".go", ".rb")
+
+
+def catalog_sources(ws: Path, st: dict) -> list:
+    """[{name, url, visibility}] from brains.yaml catalogs:, default the public Membrain catalog. url 'membrain' = <source>/catalog."""
+    public = {"name": "membrain", "url": normalize_base(st["source"]) + "/catalog", "visibility": "public"}
+    reg = ws / "brains" / "personal" / "brains.yaml"
+    listed = parse_yaml(reg.read_text(encoding="utf-8")).get("catalogs") if reg.exists() else None
+    if not listed:
+        return [public]
+    out = []
+    for c in listed:
+        if not isinstance(c, dict) or not c.get("name") or not c.get("url"):
+            continue
+        url = str(c["url"])
+        if url == "membrain":
+            url = public["url"]
+        elif not re.match(r"^(https?://|gh:)", url):
+            url = str((ws / Path(url).expanduser()).resolve()) if not Path(url).expanduser().is_absolute() else str(Path(url).expanduser())
+        else:
+            url = normalize_base(url)
+        out.append({"name": str(c["name"]), "url": url, "visibility": str(c.get("visibility") or "private")})
+    return out
+
+
+def load_index(src: dict) -> list:
+    idx = parse_yaml(fetch(src["url"], "INDEX.yaml"))
+    items = []
+    for it in idx.get("items", []) or []:
+        if isinstance(it, dict) and it.get("id"):
+            it = dict(it)
+            for k in ("depends_on", "requires_config", "files"):
+                v = it.get(k, [])
+                it[k] = v if isinstance(v, list) else ([v] if v else [])
+            it["_src"] = src
+            items.append(it)
+    return items
+
+
+def catalog_items(ws: Path, st: dict, warn=True) -> list:
+    items = []
+    for src in catalog_sources(ws, st):
+        try:
+            items += load_index(src)
+        except Exception as e:  # an unreachable private catalog must not stop browsing the others
+            if warn:
+                print(f"  note: catalog '{src['name']}' not readable ({src['url']}): {e}", file=sys.stderr)
+    return items
+
+
+def find_item(items: list, ref: str) -> dict:
+    """ref = id or id@source."""
+    iid, _, srcname = ref.partition("@")
+    hits = [i for i in items if i["id"] == iid and (not srcname or i["_src"]["name"] == srcname)]
+    if not hits:
+        raise KeyError(f"catalog item '{ref}' not found in: {', '.join(sorted({i['_src']['name'] for i in items})) or 'no readable catalog'}")
+    if len(hits) > 1:
+        raise KeyError(f"catalog item '{iid}' is in several catalogs ({', '.join(h['_src']['name'] for h in hits)}); use {iid}@<catalog>")
+    return hits[0]
+
+
+def item_texts(item: dict) -> list:
+    """[(rel, text)] for every file of the item (ITEM.md first), fetched from its catalog."""
+    folder = str(item.get("source") or f"{item['type']}/{item['id']}").strip("/")
+    names = ["ITEM.md"] + [f for f in item["files"] if f != "ITEM.md"]
+    return [(rel, fetch(item["_src"]["url"], f"{folder}/{rel}")) for rel in names]
+
+
+def render_item(text: str, values: dict, where: str) -> str:
+    return render(text, values, where)
+
+
+def vless(a, b) -> bool:
+    return vtuple(a) < vtuple(b)
+
+
+def catalog_diff(ws: Path, st: dict, items: list) -> dict:
+    """new = in a catalog, never installed; updated = newer version than installed; changed = installed files edited locally."""
+    inst = st.get("catalog_installed") or []
+    installed_keys = {(c.get("source"), c["id"]) for c in inst}
+    new = [i for i in items if (i["_src"]["name"], i["id"]) not in installed_keys]
+    by_key = {(i["_src"]["name"], i["id"]): i for i in items}
+    updated, changed = [], []
+    for c in inst:
+        it = by_key.get((c.get("source"), c["id"]))
+        if it and vless(c.get("version", "0"), it.get("version", "0")):
+            updated.append((c, it))
+        for rel, h in (c.get("files") or {}).items():
+            p = ws / rel
+            if not p.exists() or sha(p.read_text(encoding="utf-8")) != h:
+                changed.append((c, rel))
+    return {"new": new, "updated": updated, "changed": changed}
+
+
+def print_catalog_report(ws: Path, st: dict, header="Catalog"):
+    items = catalog_items(ws, st)
+    if not items:
+        print(f"\n{header}: no readable catalog")
+        return
+    d = catalog_diff(ws, st, items)
+    srcs = sorted({i["_src"]["name"] for i in items})
+    print(f"\n{header} ({len(items)} items in {', '.join(srcs)}):")
+    if not d["new"] and not d["updated"] and not d["changed"]:
+        print("  nothing new or updated")
+    for i in d["new"]:
+        ref = f"{i['id']}@{i['_src']['name']}"
+        print(f"  NEW      {ref:<36} {i['type']:<11} {str(i.get('version', '')):<7} {i.get('status', ''):<15} {i.get('summary', '')[:60]}")
+    for c, i in d["updated"]:
+        print(f"  UPDATED  {i['id']}@{i['_src']['name']}  {c.get('version')} -> {i.get('version')} ({i.get('status')})")
+    for c, rel in d["changed"]:
+        print(f"  EDITED   {c['id']}: {rel} (changed locally; an update would be a CONFLICT)")
+    print("  Install only what the person picks: scripts/catalog.py install <id>[@catalog] (MEMBRAIN.md section D).")
+
+
+def overlay_brain_kind(item: dict, ws: Path, dest: Path, values: dict, gen: list, varset_id: str) -> dict:
+    """Apply a brain-kind's files onto a freshly generated shared brain (dest = ws/brains/<name>).
+    CLAUDE.md.overlay goes in before '## How to use', SITEMAP.rows is appended to the SITEMAP table, lint.yaml becomes
+    .membrain/lint.yaml, every other file is written at its path. Updates gen in place; returns {ws-relative path: sha}."""
+    tag = f"catalog:{item['_src']['name']}/{item['id']}"
+    by_path = {g["path"]: g for g in gen}
+    written = {}
+    for rel, text in item_texts(item):
+        if rel == "ITEM.md":
+            continue
+        out = render(text, values, f"{tag}/{rel}")
+        if rel == "CLAUDE.md.overlay":
+            target = dest / "CLAUDE.md"
+            cur = target.read_text(encoding="utf-8")
+            marker = "\n## How to use\n"
+            new = cur.replace(marker, "\n" + out.rstrip() + "\n" + marker, 1) if marker in cur else cur.rstrip() + "\n\n" + out
+        elif rel == "SITEMAP.rows":
+            target = dest / "SITEMAP.md"
+            new = target.read_text(encoding="utf-8").rstrip("\n") + "\n" + out.rstrip("\n") + "\n"
+        elif rel == "lint.yaml":
+            target, new = dest / ".membrain" / "lint.yaml", out
+        else:
+            target, new = dest / rel, out
+        write_file(target, new, None)
+        key = target.relative_to(ws).as_posix()
+        written[key] = sha(new)
+        if key in by_path:
+            by_path[key]["sha256"] = written[key]
+            if tag not in by_path[key]["template"]:
+                by_path[key]["template"] += f" + {tag}"
+        else:
+            g = {"path": key, "template": f"{tag}/{rel}", "kind": "content", "scope": "shared",
+                 "vars": varset_id, "sha256": written[key]}
+            gen.append(g)
+            by_path[key] = g
+    return written
 
 
 # ------------------------------------------------------------------ setup (MEMBRAIN.md section A)
@@ -291,10 +483,42 @@ def cmd_spinoff(o):
              "EDITORS": csv_yaml(o.editors) or f"@{owner}", "REPO": f"{org}/{name}",
              "REMOTE": f"git@github.com:{org}/{name}.git",
              "OBJECTIVES": "\n".join(f"{i}. {x}" for i, x in enumerate(objectives, 1))}
+    kind, kvalues = None, {}
+    if o.from_:
+        if not o.from_.startswith("catalog:"):
+            sys.exit("membrain: --from takes catalog:<id>[@<catalog>], e.g. --from catalog:cs-brain")
+        try:
+            kind = find_item(catalog_items(ws, st), o.from_[len("catalog:"):])
+        except KeyError as e:
+            sys.exit(f"membrain: {e}")
+        if kind["type"] != "brain-kind":
+            sys.exit(f"membrain: {kind['id']} is a {kind['type']}, not a brain-kind; install it with scripts/catalog.py")
+        if kind.get("status") not in INSTALLABLE:
+            sys.exit(f"membrain: {kind['id']} is status '{kind.get('status')}' (only live or built-untested brain kinds can be spun off). "
+                     "Read its ITEM.md: scripts/catalog.py show " + kind["id"])
+        kvalues = dict(svars)
+        for kv in o.set or []:
+            k, eq, v = kv.partition("=")
+            if not eq:
+                sys.exit(f"membrain: --set wants KEY=VALUE, got {kv!r}")
+            kvalues[k.strip()] = v
+        missing = [k for k in kind["requires_config"] if k not in kvalues]
+        if missing:
+            sys.exit(f"membrain: {kind['id']} needs --set for: {', '.join(missing)} (see its ITEM.md)")
     man = manifest(base)
     print(f"Membrain: spinning off shared brain '{name}' from {base}")
     gen = generate(base, man, ws, "shared", svars, f"brain:{name}")
     print(f"  generated brains/{name} ({len(gen)} files from templates/shared-brain)")
+    kind_record = None
+    if kind:
+        try:
+            written = overlay_brain_kind(kind, ws, dest, kvalues, gen, f"brain:{name}")
+        except Unfilled as e:
+            sys.exit(f"membrain: {e}")
+        print(f"  applied brain kind {kind['id']} {kind.get('version')} from catalog '{kind['_src']['name']}' ({len(written)} files)")
+        kind_record = {"id": kind["id"], "type": "brain-kind", "version": str(kind.get("version", "")),
+                       "status": kind.get("status", ""), "source": kind["_src"]["name"], "path": f"brains/{name}",
+                       "installed_at": date, "config": {k: kvalues[k] for k in kind["requires_config"]}, "files": written}
 
     moved, blocked, stubs = [], [], []
     for spec in o.move or []:
@@ -333,8 +557,7 @@ def cmd_spinoff(o):
             f"# Moved\n\n- → {name}:{dst_rel} · moved · {date} · @{owner} · privacy:SHAREABLE_REVIEWED\n\n"
             "The content now lives in the shared brain. Read and write it there; do not copy it back.\n", encoding="utf-8")
     remote = svars["REMOTE"]
-    with open(reg, "a", encoding="utf-8") as fh:
-        fh.write(f"""  - name: {name}
+    entry = f"""  - name: {name}
     path: brains/{name}
     visibility: shared
     remote: {remote}
@@ -346,11 +569,21 @@ def cmd_spinoff(o):
     never: [{csv_yaml(o.never)}]
     default_file: inbox.md
     created: {date}
-""")
+"""
+    text = reg.read_text(encoding="utf-8")
+    brains_at = re.search(r"^brains:", text, re.M)
+    after = [m for m in re.finditer(r"^[A-Za-z_]+:", text, re.M) if brains_at and m.start() > brains_at.start()]
+    if after:  # another top-level block (e.g. catalogs:) follows the brains list: insert the entry before it
+        text = text[:after[0].start()] + entry + text[after[0].start():]
+    else:
+        text = text.rstrip("\n") + "\n" + entry
+    reg.write_text(text, encoding="utf-8")
     subprocess.run([sys.executable, str(ws / "scripts" / "route.py"), "write-routes", str(personal / "ROUTES.md"),
                     "--registry", str(reg)], check=True, capture_output=True)
     st["varsets"].append({"id": f"brain:{name}", "vars": svars})
     st["generated"] += gen
+    if kind_record:
+        st.setdefault("catalog_installed", []).append(kind_record)
     (ws / ".membrain.yaml").write_text(dump_state(st), encoding="utf-8")
     print("  route registered in brains/personal/brains.yaml; ROUTES.md refreshed; .membrain.yaml updated")
     print(f"""
@@ -397,6 +630,8 @@ def cmd_upgrade(o):
             ids = ["workspace"]
         elif scope == "personal":
             ids = ["brain:personal"]
+        elif scope == "catalog-repo":  # generated into a separate catalog repo by catalog.py new-repo, not the workspace
+            continue
         else:
             ids = [i for i in varsets if i.startswith("brain:") and i != "brain:personal"]
         for vid in ids:
@@ -412,7 +647,8 @@ def cmd_upgrade(o):
                     skipped_content.append(target)
                 continue
             try:
-                new_text = render(fetch(base, f["template"]), vars_, f["template"])
+                raw = fetch(base, f["template"])
+                new_text = raw if f.get("raw") else render(raw, vars_, f["template"])
             except Unfilled as e:
                 proposals.append({"path": target, "action": f"SKIP (needs a new value: {e})", "skip": True})
                 continue
@@ -443,6 +679,10 @@ def cmd_upgrade(o):
     if skipped_content:
         print("\nNew content templates exist but are NOT applied (content is yours; your agent may propose them): "
               + ", ".join(skipped_content))
+    try:  # catalog items are never installed by an upgrade; report them so the person can pick (section D)
+        print_catalog_report(ws, {**st, "source": base}, "Catalog (installs are separate; nothing here is applied)")
+    except Exception as e:
+        print(f"\nCatalog: not checked ({e})")
     if not o.apply:
         print("\nDry run. Nothing changed. Re-run with --apply to write the UPDATE/ADD items"
               " (CONFLICT items also need --force-local).")
@@ -488,6 +728,8 @@ def main(argv=None):
         b.add_argument(a)
     b.add_argument("--never", default="price,grant,quotation,salary,password")
     b.add_argument("--move", action="append")
+    b.add_argument("--from", dest="from_", help="start from a catalog brain kind: catalog:<id>[@<catalog>]")
+    b.add_argument("--set", action="append", help="KEY=VALUE config for the brain kind")
     b.add_argument("--accept-warnings", action="store_true")
     u = sub.add_parser("upgrade")
     u.add_argument("--base")

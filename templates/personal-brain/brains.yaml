@@ -2,6 +2,12 @@
 # After editing: scripts/route.py write-routes brains/personal/ROUTES.md
 version: 1
 owner: {{OWNER}}
+# Catalogs this workspace browses (scripts/catalog.py, MEMBRAIN.md section D). url: membrain = the public catalog of the
+# Membrain source in .membrain.yaml. Private org catalogs: a raw URL, gh:owner/repo (uses your GitHub CLI login) or a local path.
+catalogs:
+  - name: membrain
+    url: membrain
+    visibility: public
 brains:
   - name: {{BRAIN_NAME}}
     path: brains/personal

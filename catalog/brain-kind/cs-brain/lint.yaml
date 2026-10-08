@@ -1,0 +1,13 @@
+# Lint settings for this brain (read by scripts/lint.py). Content: the brain owner edits it; upgrades never overwrite it.
+# From the catalog brain kind cs-brain.
+note_files: ["playbook/*.md", "tickets/*.md", "clients/*.md", "inbox.md"]
+log_types: [fix, ticket, client, lint, answer]
+plugins: [cs_playbook]                 # playbook line format under "## Fixes"; ticket ids in fixes must be in tickets/log.md
+cs_playbook:
+  playbook: playbook/fixes.md
+  fixes_heading: "## Fixes"
+  tickets: tickets/log.md
+  ticket_id: "{{TICKET_PREFIX}}"
+  line_regex: " · \\d{4}-\\d{2}-\\d{2}( · |\\s*$)"   # symptom → fix · client · date [· @owner · status · src:…]
+# privacy_allow: ["@example\\.com"]    # regexes the privacy check ignores (after the owner's review)
+# disable: [W002]                      # finding codes or names to turn off

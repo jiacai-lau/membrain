@@ -1,0 +1,5 @@
+# Lint settings for this catalog repo (read by scripts/lint.py). Catalog items are documents, not one-line entries,
+# so entry checks are off; the privacy checks (prices, emails, phones, ids, secrets) stay on.
+note_files: []
+disable: [E020, W022]          # INDEX.yaml is this repo's map, not SITEMAP.md
+# privacy_allow: ["…"]          # regexes the privacy check ignores, after the owner's review
