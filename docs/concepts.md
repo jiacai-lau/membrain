@@ -121,6 +121,10 @@ Catalogs come from more than one place. The public Membrain catalog holds generi
 
 Installing is explicit. Your agent installs only what you pick, asks for the config the item needs, writes the files to `brains/personal/installed/<type>/<id>/` and records the version and file hashes in `.membrain.yaml`. A newer version shows up as an update; a file you edited shows up as a conflict instead of being overwritten. A brain kind isn't installed: you spin off a new shared brain from it. Routines and agents do nothing until you register their prompt in your agent platform; Membrain never schedules anything itself.
 
+## Apps (draft)
+
+A brain can describe a simple app (a booking page, a form, a dashboard, an intake chat) in `apps/<name>/APP.md`: who uses it, its data, screens, rules and notifications. An agent builds the app from that spec, so nothing is hard-coded and a change to the business is a change to the spec. Rules and process stay in the brain; live data (bookings, guests, uploads) goes in a store chosen from a ladder of free (Google Sheets and Drive), middle (managed Postgres) and advanced (self-hosted Postgres). The brain records the rung and where the data is, never the credentials, and the schema in the spec makes moving up a rung a planned migration. Details, the dynamic profile chat pattern and a 30-minute setup runbook: [apps.md](apps.md).
+
 ## Where the ideas come from
 
 - **Andrej Karpathy's LLM Wiki**: compile knowledge once into markdown and keep it current, lint it regularly, keep a greppable log.

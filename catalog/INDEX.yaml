@@ -76,3 +76,33 @@ items:
     requires_config: []
     source: agent/onboarding-agent
     files: [AGENT.md]
+
+  - id: tour-booking
+    type: app
+    version: "0.1.0"
+    status: spec
+    summary: "SPEC ONLY. Worked example of the app spec format: tour types, capacity per slot, deposits, cancellation and seasons as rules; live bookings in a rung 1 store (Sheets + Drive). Fictional farm data."
+    depends_on: []
+    requires_config: []
+    source: app/tour-booking
+    files: [APP.md, DATA-STORE.example.md]
+
+  - id: dynamic-profile-chat
+    type: app
+    version: "0.1.0"
+    status: spec
+    summary: "SPEC ONLY. Thin chat page: an LLM updates every profile field a reply touches (source, confidence, confirmed, change log); question list is a coverage checklist; approval before go-live."
+    depends_on: []
+    requires_config: []
+    source: app/dynamic-profile-chat
+    files: [APP.md, PROFILE-FORMAT.md]
+
+  - id: tour-operations
+    type: brain-kind
+    version: "0.1.0"
+    status: spec
+    summary: "Brain for a tour or activity operator: tours, booking policies, profile + question list for the profile chat, app specs. Built for the 30-minute setup runbook."
+    depends_on: [tour-booking, dynamic-profile-chat]
+    requires_config: []
+    source: brain-kind/tour-operations
+    files: [CLAUDE.md.overlay, SITEMAP.rows, lint.yaml, tours/catalog.md, policies/bookings.md, profile/questions.md, profile/profile.md, profile/changes.md, apps/README.md]

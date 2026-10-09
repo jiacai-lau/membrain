@@ -1,0 +1,12 @@
+## Folders
+| Path | Use it for |
+|---|---|
+| `tours/catalog.md` | Tour types: one row each. Amounts per person live in the data store, not here |
+| `policies/bookings.md` | Capacity, deposit, cancellation, weather and season rules; one dated line each |
+| `profile/questions.md` | Question list for the profile chat (a coverage checklist, not a script) |
+| `profile/profile.md` | The operator's profile: field, value, source, confidence, confirmed |
+| `profile/changes.md` | Append-only log of profile changes |
+| `apps/<name>/APP.md` | App spec (see Membrain `docs/apps.md`); `DATA-STORE.md` beside it points at the live store. No credentials |
+| `log/` | One entry per session (format in `log/README.md`) |
+
+Live bookings, guest names and contacts stay in the data store, never in this brain. A rule change is made in `policies/bookings.md` and the app spec together, and the owner approves it.

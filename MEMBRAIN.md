@@ -8,6 +8,7 @@
 | Share a topic with your team | B | "Read AGENTS.md in my Membrain workspace, then follow section B of https://raw.githubusercontent.com/jiacai-lau/membrain/main/MEMBRAIN.md to spin off a shareable brain called `<name>` for `<purpose>`. Show me which files would move and the privacy check result before moving anything, and don't create the GitHub repo or invite anyone until I say so." |
 | Get the latest Membrain rules and scripts | C | "In my Membrain workspace, follow section C of https://raw.githubusercontent.com/jiacai-lau/membrain/main/MEMBRAIN.md: run the upgrade dry run, show me the changelog and the proposed framework file changes, and apply only after I say OK. Never overwrite my content files." |
 | Browse and install catalog items (skills, routines, agents, apps, brain kinds) | D | "In my Membrain workspace, follow section D of https://raw.githubusercontent.com/jiacai-lau/membrain/main/MEMBRAIN.md: show me what is new or updated in every catalog I use, and install only the items I pick." |
+| Plan an app (booking page, form, intake chat) from a brain (draft) | E | "In my Membrain workspace, follow section E of https://raw.githubusercontent.com/jiacai-lau/membrain/main/MEMBRAIN.md to write an app spec for `<app>` in brain `<brain>`. Propose the storage rung, show me the spec, and don't build anything, create a data store or send data anywhere until I say so." |
 
 **What your agent will do.** It asks you a few questions, generates files from the templates listed in `MANIFEST.yaml`, runs a self-test, and ends with a short summary and the next step.
 
@@ -19,7 +20,7 @@ What Membrain is and why: see the [README](README.md) and [concepts](docs/concep
 
 ## For the agent
 
-You were pointed here to **set up** (A), **spin off** (B), **upgrade** (C) or **browse and install from the catalog** (D) for the person you work for.
+You were pointed here to **set up** (A), **spin off** (B), **upgrade** (C), **browse and install from the catalog** (D) or **plan an app** (E, draft) for the person you work for.
 
 **Nobody clones or forks Membrain.** You READ this repo: fetch raw files and GENERATE the person's workspace from the templates listed in `MANIFEST.yaml`. (Teammates joining a *shared brain* may `git clone` that brain's own repo; that is different and fine.)
 
@@ -132,3 +133,14 @@ A **catalog** is a folder with `INDEX.yaml` and one folder per item, `<type>/<id
    - **Brain kinds** are not installed this way. Use section B with `--from catalog:<id>`.
 4. **Register what needs registering.** Routines and agents do nothing by themselves. Follow the item's `## Install` steps (printed after the install) to add its prompt to the person's agent platform as a scheduled task, automation or hire. Point the job at the installed file; never paste rules into it.
 5. Finish with a TLDR: what was installed (id, version, catalog), what was skipped and why, and what still needs registering or a first supervised run.
+
+## E. Apps (draft)
+
+**Draft, v0.5.0.** The full design is in [docs/apps.md](docs/apps.md): the app spec format, the storage ladder, the dynamic profile chat pattern and the 30-minute setup runbook. There is no generator script yet; you work from the documents.
+
+1. **Read** `<BASE>/docs/apps.md` and any catalog app or brain kind the person names (`scripts/catalog.py show <id>`), for example `tour-booking`, `dynamic-profile-chat` or `tour-operations`.
+2. **Write the spec** in the brain as `apps/<name>/APP.md` (frontmatter fields as in docs/apps.md, plain-language body). Values come from the brain's files and the person's answers, never from your guesses; mark open items under `## Open questions`. Keep personal data fields `private: true` and money values out of shared brains.
+3. **Propose a storage rung** (1 Sheets + Drive, 2 managed Postgres, 3 self-hosted Postgres) with the reason, and write `apps/<name>/DATA-STORE.md` as a pointer: rung, provider, location name, access, backups. Never write passwords, keys, tokens or connection strings in a brain.
+4. **Show the person** the spec and the rung. Build, create a data store, deploy, connect accounts or send real client data to an outside service only on their explicit OK. Set `status` honestly (`spec` until built; `built-untested` until one supervised run).
+5. **Changes** go into `APP.md` first (bump `version`; bump `schema_version` and log it in `apps/<name>/changes.md` if the data changes), then the app is regenerated. Moving to another rung follows the export/import contract in docs/apps.md.
+6. Lint the brain and finish with a TLDR: what was written, the open questions, the proposed rung, and what needs the person's OK.

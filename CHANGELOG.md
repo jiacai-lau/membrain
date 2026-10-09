@@ -2,6 +2,14 @@
 
 Format: `## [version] - date`, newest first. Upgrades show the entries newer than the workspace's version.
 
+## [0.5.0] - 2026-10-10
+- DRAFT apps layer (`docs/apps.md`): a brain can describe a simple app in `apps/<name>/APP.md` (frontmatter: name, purpose, status, version, schema_version, roles, entities and fields, screens, flows, rules, notifications, data_store rung, file_storage, mirror_to_brain, questions) and an agent builds it from the spec. Nothing hard-coded; the brain stays the source of truth for rules, live data sits in the chosen store.
+- Storage ladder: rung 1 Google Sheets + Drive, rung 2 managed Postgres free tier (e.g. Supabase), rung 3 self-hosted Postgres (e.g. a Hetzner VPS), with when-to-choose, limits, setup effort, backup and privacy notes. The rung is recorded in `APP.md` plus an `apps/<name>/DATA-STORE.md` pointer (never credentials). CSV-per-entity export/import contract for moving between rungs.
+- Dynamic profile chat pattern: per-reply LLM patch of every touched field (source, confidence, confirmed), `profile.md` + append-only `changes.md` per client, question list as a coverage checklist, statuses draft → in_review → approved → setup_done, approval by a person before go-live. Generic roles: research, intake, setup, approver.
+- 30-minute setup runbook for a new client from a brain kind + app.
+- Public catalog: `tour-booking` (app, spec; fictional farm example), `dynamic-profile-chat` (app, spec), `tour-operations` (brain kind, spec).
+- MEMBRAIN.md section E "Apps (draft)"; README apps section and catalog rows; concepts section. No template or script changes.
+
 ## [0.4.0] - 2026-10-08
 - Catalog: installable items with an `ITEM.md` each, in `catalog/<type>/<id>/` with `catalog/INDEX.yaml` (id, type, version, status, summary, depends_on, requires_config, source, files). Types: brain-kind, agent, routine, skill, app, data-source. Status: live, built-untested, spec, idea.
 - Public catalog seed (generic): `cs-brain` (brain kind, live), `weekly-brain-lint` (routine, built-untested), `proposal-claim-review` (skill, spec), `client-health-dashboard` (app, spec only), `onboarding-brain` (brain kind, idea), `client-onboarding-portal` + `onboarding-agent` (idea).

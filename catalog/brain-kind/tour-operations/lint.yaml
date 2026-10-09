@@ -1,0 +1,6 @@
+# Lint settings for this brain (read by scripts/lint.py). Content: the brain owner edits it; upgrades never overwrite it.
+# From the catalog brain kind tour-operations.
+note_files: ["tours/*.md", "policies/*.md", "profile/questions.md", "inbox.md"]
+log_types: [booking, tour, policy, profile, app, lint, answer]
+# privacy_allow: []                    # regexes the privacy check ignores (after the owner's review)
+# disable: []                          # finding codes or names to turn off

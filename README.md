@@ -143,12 +143,19 @@ The catalog is a shelf of ready-made items your agent can install into your work
 | `client-health-dashboard` | app | spec | Design only: one green, amber or red signal per client, with an alert only on red. |
 | `onboarding-brain` | brain kind | idea | A go-live checklist the client ticks: Accept, Not accept, exceptions, sign-off. |
 | `client-onboarding-portal` + `onboarding-agent` | app + agent | idea | Concept: client uploads files, an agent drafts imports, an admin approves before anything is written. |
+| `tour-operations` | brain kind | spec | Design only: a brain for a tour or activity operator (tours, booking policies, profile and question list, app specs), built for a 30-minute client setup. |
+| `tour-booking` | app | spec | Design only: worked example of an app spec: tour types, capacity per slot, deposits, cancellation and seasons, with bookings in a Google Sheet. |
+| `dynamic-profile-chat` | app | spec | Design only: a chat page where an AI updates the client's profile after every reply, with sources and a change log, and a person approves before go-live. |
 
 <sub>Status: **live** is in daily use, **built-untested** works but needs one supervised run, **spec** is a design with no code, **idea** is a concept. Your agent never presents a spec or idea as working.</sub>
 
 - **Every item explains itself.** Each item has an `ITEM.md` with its purpose, who it's for, status, dependencies, the config it needs and the install steps your agent follows.
 - **Your organisation can have its own catalog.** Items that name your systems belong in a private catalog repo with the same layout (`scripts/catalog.py new-repo`). You list it under `catalogs:` in `brains.yaml` and your agent browses all catalogs together.
 - **Installs are tracked like everything else.** Installed files go to `brains/personal/installed/`. `.membrain.yaml` records each item's version and file hashes, so a newer version is offered as an update and your own edits are never silently overwritten.
+
+## Apps (draft)
+
+A brain can also describe a simple app (a booking page, a form, a dashboard, an intake chat) in `apps/<name>/APP.md`, and an agent builds it from that spec. Nothing is hard-coded: fields, screens, rules and questions come from the brain's files, and changing the business means editing the spec. Live data (bookings, guests, uploads) sits in a store picked from a **storage ladder**: Google Sheets and Drive (free), managed Postgres such as Supabase (middle) or your own Postgres server (advanced). The brain records which rung and where, never the credentials. The draft also covers a dynamic profile chat pattern and a 30-minute runbook for setting up a new client. It's all in [docs/apps.md](docs/apps.md). This is a draft: the catalog items are specs, and there is no generator yet.
 
 ## Usage prompts
 
@@ -181,6 +188,7 @@ More in [docs/faq.md](docs/faq.md).
 - An MCP server that enforces the rules server-side and only exposes the brains each caller may see.
 - An LLM lint pass that finds contradictions and stale claims and proposes fixes into `inbox.md`.
 - Build the catalog's spec items (starting with the client health dashboard) and move built-untested items to live after real runs.
+- Apps layer: a generator that builds a page and its data store from an `APP.md` spec, starting with `dynamic-profile-chat` and `tour-booking`, and a test of the 30-minute setup runbook.
 
 ## Credits
 

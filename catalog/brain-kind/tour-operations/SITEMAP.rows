@@ -1,0 +1,6 @@
+| `tours/catalog.md` | tour types, capacity, seasons | @{{OWNER}} | edit row; owner approves | {{DATE}} | {{DATE}} |
+| `policies/bookings.md` | booking, deposit, cancellation, weather rules | @{{OWNER}} | append one line; owner approves | {{DATE}} | {{DATE}} |
+| `profile/questions.md` | question list (coverage checklist) | @{{OWNER}} | append one row | {{DATE}} | {{DATE}} |
+| `profile/profile.md` | operator profile with sources | @{{OWNER}} | rewritten by intake each reply | {{DATE}} | {{DATE}} |
+| `profile/changes.md` | profile change log | @{{OWNER}} | append only | {{DATE}} | {{DATE}} |
+| `apps/` | app specs and data-store pointers | @{{OWNER}} | PR; owner approves | {{DATE}} | {{DATE}} |

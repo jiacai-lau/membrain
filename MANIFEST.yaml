@@ -6,7 +6,7 @@
 # scope    = workspace (setup) | personal (setup) | shared (each spin-off) | catalog-repo (catalog.py new-repo)
 # mode     = file mode to set (755 = executable)
 # raw      = true: copy the template as is, do not fill placeholders (test fixtures that contain {{...}})
-membrain_version: 0.4.0
+membrain_version: 0.5.0
 placeholders:
   - workspace: [OWNER, DATE, MEMBRAIN_VERSION, SOURCE_URL]
   - personal: [BRAIN_NAME, OWNER, DATE, REMOTE, ALIASES]
