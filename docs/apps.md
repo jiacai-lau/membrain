@@ -35,7 +35,8 @@ App status uses the catalog words: `idea` → `spec` → `built-untested` (built
 
 ## The app spec: `apps/<name>/APP.md`
 
-One folder per app in the brain:
+One folder per app in the brain. **Every brain generated from v0.5.1 on has a blank scaffold at `apps/_starter/`** (`APP.md`, `DATA-STORE.md`, `SETUP-CHECKLIST.md`, `README.md`): copy it to `apps/<name>/` and fill in the `<...>` prompts. It is scaffolding only, no app code. Older brains get it as an `ADD` in the upgrade dry run (MEMBRAIN.md section C).
+
 
 ```
 apps/
@@ -229,6 +230,8 @@ At larger scale the live copy can move to a database (rung 2) while the approved
 ## Runbook: new client in 30 minutes
 
 Goal: from sharing the brain to a working test run in under 30 minutes. This is only realistic when the preparation below exists **before** the call. The first client of a new kind usually takes longer; the second should hit the target.
+
+The same steps are in every brain as tick boxes: `apps/_starter/SETUP-CHECKLIST.md` (copy it with the rest of the starter).
 
 **Must exist beforehand**
 

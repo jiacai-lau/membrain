@@ -22,6 +22,7 @@ cd "$TMP/ws" || exit 1
 check "personal brain is a local git repo"     "[ -d brains/personal/.git ]"
 check "no remote was added"                    "[ -z \"\$(git -C brains/personal remote)\" ]"
 check "personal brain has hooks, CI, log, lint" "[ -f brains/personal/.claude/settings.json ] && [ -f brains/personal/.cursor/hooks.json ] && [ -f brains/personal/.github/workflows/lint.yml ] && [ -f brains/personal/log/README.md ] && [ -x brains/personal/scripts/sync.sh ] && [ -f brains/personal/scripts/lint.py ]"
+check "brains get the app starter scaffold"   "[ -f brains/personal/apps/_starter/APP.md ] && [ -f brains/personal/apps/_starter/DATA-STORE.md ] && [ -f brains/personal/apps/_starter/SETUP-CHECKLIST.md ] && [ -f brains/personal/apps/_starter/README.md ]"
 check "hook configs are valid JSON"            "python3 -c 'import json,sys;[json.load(open(f)) for f in sys.argv[1:]]' brains/personal/.claude/settings.json brains/personal/.cursor/hooks.json .claude/settings.json .cursor/hooks.json"
 
 out="$(python3 scripts/lint.py tests/fixtures --visibility shared --skip sitemap)"; rc=$?
@@ -42,6 +43,7 @@ scripts/spinoff.sh team --topics "client issue,known fix" --keywords "printer,la
    --move projects/a/clean.md:playbook/clean.md --move projects/a/deal.md >"$TMP/spin.log" 2>&1; rc=$?
 check "spinoff exits 3 when a move is blocked" "[ $rc = 3 ]"
 check "shared brain generated + own git repo"  "[ -d brains/team/.git ] && [ -f brains/team/scripts/lint.py ] && [ -f brains/team/README.md ] && [ -f brains/team/.cursor/rules/team.mdc ]"
+check "shared brain gets the app starter scaffold" "[ -f brains/team/apps/_starter/APP.md ] && [ -f brains/team/apps/_starter/SETUP-CHECKLIST.md ]"
 check "shared CLAUDE.md has real objectives"   "grep -q '^1\. Anyone on the team finds' brains/team/CLAUDE.md && grep -q 'SUPERSEDED YYYY-MM-DD' brains/team/CLAUDE.md"
 check "clean file moved, stub left"            "[ -f brains/team/playbook/clean.md ] && grep -q '→ team:playbook/clean.md' brains/personal/projects/a/clean.md"
 check "private file NOT moved"                 "[ ! -e brains/team/projects/a/deal.md ] && grep -q SGD brains/personal/projects/a/deal.md"

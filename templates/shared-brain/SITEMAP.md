@@ -12,5 +12,6 @@ Last checked: {{DATE}} · Maintainer: @{{OWNER}}
 | `sources.csv` | external systems this brain relies on, and our access to them | @{{OWNER}} | update own rows | {{DATE}} | {{DATE}} |
 | `requests.csv` | open questions and missing information, with owner and date needed | @{{OWNER}} | update own rows | {{DATE}} | {{DATE}} |
 | `handoffs/` | longer notes and returns, one file per version | @{{OWNER}} | one file per handoff | {{DATE}} | {{DATE}} |
+| `apps/` | app specs (`apps/<name>/APP.md`) and data-store pointers; `apps/_starter/` is the blank scaffold to copy | @{{OWNER}} | copy `_starter`, owner approves | {{DATE}} | {{DATE}} |
 | `README.md` | how to get access, set up, point your agent, sync and lint | @{{OWNER}} | owner only | {{DATE}} | {{DATE}} |
 | `log/` | activity log, one file per month (`log/YYYY-MM.md`), format in `log/README.md` | @{{OWNER}} | append one entry per session | {{DATE}} | {{DATE}} |

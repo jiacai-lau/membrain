@@ -2,6 +2,12 @@
 
 Format: `## [version] - date`, newest first. Upgrades show the entries newer than the workspace's version.
 
+## [0.5.1] - 2026-10-10
+- App starter scaffold (scaffolding only, no app code): every brain, personal and shared, now gets `apps/_starter/` with a blank `APP.md` (spec frontmatter and sections with fill-in prompts), `DATA-STORE.md` (rung, location pointer, owner, backup/export, explicit no-credentials warning), `SETUP-CHECKLIST.md` (the 30-minute runbook as tick boxes) and `README.md` (copy `_starter` to `apps/<name>/`). Framework files: existing brains see them as `ADD` in the upgrade dry run.
+- Lint skips `apps/_starter/**` for entry-format and orphan checks (it is a template, not notes). Privacy checks still apply.
+- New brains' `SITEMAP.md` gets an `apps/` row (content; existing brains may add it by hand).
+- `docs/apps.md` points at the starter. Self-test: two new checks (personal and shared brains get the starter).
+
 ## [0.5.0] - 2026-10-10
 - DRAFT apps layer (`docs/apps.md`): a brain can describe a simple app in `apps/<name>/APP.md` (frontmatter: name, purpose, status, version, schema_version, roles, entities and fields, screens, flows, rules, notifications, data_store rung, file_storage, mirror_to_brain, questions) and an agent builds it from the spec. Nothing hard-coded; the brain stays the source of truth for rules, live data sits in the chosen store.
 - Storage ladder: rung 1 Google Sheets + Drive, rung 2 managed Postgres free tier (e.g. Supabase), rung 3 self-hosted Postgres (e.g. a Hetzner VPS), with when-to-choose, limits, setup effort, backup and privacy notes. The rung is recorded in `APP.md` plus an `apps/<name>/DATA-STORE.md` pointer (never credentials). CSV-per-entity export/import contract for moving between rungs.

@@ -6,7 +6,7 @@
 # scope    = workspace (setup) | personal (setup) | shared (each spin-off) | catalog-repo (catalog.py new-repo)
 # mode     = file mode to set (755 = executable)
 # raw      = true: copy the template as is, do not fill placeholders (test fixtures that contain {{...}})
-membrain_version: 0.5.0
+membrain_version: 0.5.1
 placeholders:
   - workspace: [OWNER, DATE, MEMBRAIN_VERSION, SOURCE_URL]
   - personal: [BRAIN_NAME, OWNER, DATE, REMOTE, ALIASES]
@@ -207,6 +207,22 @@ files:
     target: brains/personal/sources.csv
     kind: content
     scope: personal
+  - template: templates/brain/apps/_starter/APP.md
+    target: brains/personal/apps/_starter/APP.md
+    kind: framework
+    scope: personal
+  - template: templates/brain/apps/_starter/DATA-STORE.md
+    target: brains/personal/apps/_starter/DATA-STORE.md
+    kind: framework
+    scope: personal
+  - template: templates/brain/apps/_starter/README.md
+    target: brains/personal/apps/_starter/README.md
+    kind: framework
+    scope: personal
+  - template: templates/brain/apps/_starter/SETUP-CHECKLIST.md
+    target: brains/personal/apps/_starter/SETUP-CHECKLIST.md
+    kind: framework
+    scope: personal
   - template: templates/brain/claude-settings.json
     target: brains/personal/.claude/settings.json
     kind: framework
@@ -307,6 +323,22 @@ files:
   - template: templates/shared-brain/sources.csv
     target: brains/{{BRAIN_NAME}}/sources.csv
     kind: content
+    scope: shared
+  - template: templates/brain/apps/_starter/APP.md
+    target: brains/{{BRAIN_NAME}}/apps/_starter/APP.md
+    kind: framework
+    scope: shared
+  - template: templates/brain/apps/_starter/DATA-STORE.md
+    target: brains/{{BRAIN_NAME}}/apps/_starter/DATA-STORE.md
+    kind: framework
+    scope: shared
+  - template: templates/brain/apps/_starter/README.md
+    target: brains/{{BRAIN_NAME}}/apps/_starter/README.md
+    kind: framework
+    scope: shared
+  - template: templates/brain/apps/_starter/SETUP-CHECKLIST.md
+    target: brains/{{BRAIN_NAME}}/apps/_starter/SETUP-CHECKLIST.md
+    kind: framework
     scope: shared
   - template: templates/brain/claude-settings.json
     target: brains/{{BRAIN_NAME}}/.claude/settings.json
