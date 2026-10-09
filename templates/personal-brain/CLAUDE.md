@@ -26,6 +26,18 @@ Everything starts here. When a topic grows into something others need, spin it o
 - **Never delete a line.** To retire one, append ` · SUPERSEDED YYYY-MM-DD: <reason>` and add the newer fact as a new line. No strikethrough, no edits.
 - Only @{{OWNER}} approves removing, merging or moving lines, and changes to folders, `CLAUDE.md`, `AGENTS.md`, `.claude/`, `.cursor/`, `.github/` or `scripts/`.
 
+## Capture as you go
+- While you work, write down what the person states as settled (a decision, a fact, a correction, a preference), even when they only asked a question. One dated line per item in the file that owns it, in the entry format; `inbox.md` when unsure. Routing and privacy rules apply as for any write.
+- A correction retires the old line with the ` · SUPERSEDED` tail and adds the new one. Never leave two answers standing.
+- "log this": save the current piece of work as a topic note, `topics/<slug>.md` (format in `topics/README.md`): status, where it stands, the next step, decisions, open questions.
+- "continue" or "pick up <topic>": open that topic note, say where it stands and the next step, then carry on. Save it again before the session ends.
+- Other everyday requests (status, check-up, file this, make a how-to, history, upgrade) are listed in the workspace `docs/COMMANDS.md`.
+
+## Housekeeping
+- **Look before you ask.** Search this brain (`SITEMAP.md`, the owning file, `topics/`) before asking the person for something it may already hold. If you still ask, say where you looked.
+- **Keep files short.** Aim for under 300 lines per file; lint warns above that. Propose a split (by topic or by year) with new `SITEMAP.md` rows; the owner approves the move.
+- **Numbers carry a source and a date.** Every count, rate, total or measurement says where it came from and as of when (`src:` and the date in the entry). A number without both is `unverified`.
+
 ## Sync and logging
 - Hooks in `.claude/` and `.cursor/` pull this brain when it is stale and commit + push when it changed. `scripts/sync.sh` pushes only to the private remote in `.membrain.yaml` (`remote:`); with none set it commits locally only.
 - At the end of a session that changed this brain, add one entry to `log/YYYY-MM.md` (format in `log/README.md`).

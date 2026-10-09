@@ -5,6 +5,7 @@ owner: {{OWNER}}
 remote: {{REMOTE}}             # the only remote scripts/sync.sh pushes to
 editors: [{{EDITORS}}]
 created: {{DATE}}
+structure: 2                  # brain layout version; scripts/membrain.py migrate moves it up one step at a time
 stale_days: 30                # SITEMAP rows and 'unverified' lines older than this get flagged
 inbox_days: 14                # inbox items waiting longer than this get flagged
 privacy_allow: []             # regexes the privacy check ignores, e.g. ["@yourcompany\\.com"]

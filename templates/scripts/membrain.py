@@ -8,7 +8,10 @@ templates. Nobody clones Membrain; this script fetches MANIFEST.yaml and the tem
                       [--never "price,grant,..."] [--editors "p,q"] [--org ORG]
                       [--move PATH[:NEWPATH]]... [--accept-warnings] [--base <url|path>]
                       [--from catalog:<id>[@<source>]] [--set KEY=VALUE]...
-  membrain.py upgrade [--base <url|path>] [--apply] [--force-local]     (dry-run unless --apply)
+  membrain.py upgrade [--base <url|path>] [--apply] [--force-local]     (dry-run unless --apply; restore point first)
+  membrain.py migrate [--base <url|path>] [--brain NAME] [--apply]      (brain structure steps; dry-run unless --apply)
+  membrain.py restore [ID] [--apply]                                     (list restore points, or put one back)
+  membrain.py status  [--online]                                         (health and what is pending, per brain)
   (catalog browsing and installs: scripts/catalog.py, which uses the catalog functions below)
 
 Rules it keeps: never pushes, never calls GitHub, never makes anything public, never overwrites a
@@ -28,6 +31,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
+STRUCTURE = 2  # brain layout version of this framework; keep equal to STRUCTURE in lint.py (MANIFEST 'structure')
 RAW_GH = re.compile(r"^https?://github\.com/([^/]+)/([^/#?]+?)(?:\.git)?/?$")
 PLACEHOLDER = re.compile(r"\{\{([A-Z_]+)\}\}")
 
@@ -683,10 +687,20 @@ def cmd_upgrade(o):
         print_catalog_report(ws, {**st, "source": base}, "Catalog (installs are separate; nothing here is applied)")
     except Exception as e:
         print(f"\nCatalog: not checked ({e})")
+    target = int(man.get("structure") or STRUCTURE)
+    behind = [(n, brain_structure(d)) for n, d, _ in brain_dirs(ws, st) if brain_structure(d) < target]
+    if behind:
+        print(f"\nBrain structure (framework {target}): " + ", ".join(f"{n} is at {s}" for n, s in behind)
+              + ". After --apply, run 'python3 scripts/membrain.py migrate' (dry run) for the step-by-step changes.")
     if not o.apply:
         print("\nDry run. Nothing changed. Re-run with --apply to write the UPDATE/ADD items"
-              " (CONFLICT items also need --force-local).")
+              " (CONFLICT items also need --force-local). A restore point is made first.")
         return
+    writable = [p for p in proposals if not p.get("skip") and (not p["action"].startswith("CONFLICT") or o.force_local)]
+    if writable:
+        rid = make_restore_point(ws, f"upgrade {st['membrain_version']} to {new_version}",
+                                 [p["path"] for p in writable] + [".membrain.yaml"])
+        print(f"  restore point: {RESTORE_DIR}/{rid} (put back with: python3 scripts/membrain.py restore {rid})")
     touched_by_repo: dict[Path, list[str]] = {}
     for p in proposals:
         if p.get("skip"):
@@ -708,6 +722,274 @@ def cmd_upgrade(o):
         git(repo, "commit", "-q", "--no-verify", "-m", f"membrain: upgrade framework to {new_version}", "--", *paths)
         print(f"  committed locally in {repo.name}: {len(paths)} file(s)")
     print(f"Applied. Workspace now at {new_version}. Nothing was pushed.")
+
+
+# ------------------------------------------------------------------ restore points (used by upgrade --apply and migrate --apply)
+RESTORE_DIR = ".membrain/restore"
+
+
+def make_restore_point(ws: Path, label: str, paths) -> str:
+    """Copy every listed workspace-relative file that exists into .membrain/restore/<id>/ before it is changed.
+    Files that do not exist yet are listed as 'added' (a restore leaves them in place). Returns the id."""
+    stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    rid = f"{stamp}-{re.sub(r'[^a-z0-9.-]+', '-', label.lower()).strip('-')}"
+    root = ws / RESTORE_DIR / rid
+    n = 1
+    while root.exists():
+        n += 1
+        root = ws / RESTORE_DIR / f"{rid}-{n}"
+    rid = root.name
+    copied, added = [], []
+    for rel in sorted(set(paths)):
+        src = ws / rel
+        if src.is_file():
+            dst = root / "files" / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.write_bytes(src.read_bytes())
+            os.chmod(dst, src.stat().st_mode & 0o777)
+            copied.append(rel)
+        else:
+            added.append(rel)
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "RESTORE.md").write_text(
+        f"# Restore point {rid}\n\nMade before: {label}\n\n## Copied (put back by a restore)\n"
+        + "".join(f"- {r}\n" for r in copied) + "\n## Added by the change (a restore leaves these; delete them by hand only if the person asks)\n"
+        + ("".join(f"- {r}\n" for r in added) or "- (none)\n")
+        + f"\nPut it back: `python3 scripts/membrain.py restore {rid}` (dry run), then add `--apply`.\n", encoding="utf-8")
+    return rid
+
+
+def cmd_restore(o):
+    ws = Path.cwd().resolve()
+    load_state(ws)
+    base = ws / RESTORE_DIR
+    points = sorted(p.name for p in base.iterdir() if p.is_dir()) if base.is_dir() else []
+    if not o.id:
+        print("Restore points (newest last):" if points else "No restore points yet.")
+        for rid in points:
+            head = (base / rid / "RESTORE.md").read_text(encoding="utf-8").splitlines()
+            made = next((l[len("Made before: "):] for l in head if l.startswith("Made before: ")), "")
+            print(f"  {rid}  {made}")
+        return
+    root = base / o.id
+    if not root.is_dir():
+        sys.exit(f"membrain: no restore point {o.id!r} (run 'membrain.py restore' to list them)")
+    files = sorted(p for p in (root / "files").rglob("*") if p.is_file()) if (root / "files").is_dir() else []
+    print(f"Restore point {o.id}: {len(files)} file(s)")
+    for f in files:
+        print(f"  {'RESTORE' if o.apply else 'would restore'}  {f.relative_to(root / 'files').as_posix()}")
+    if not o.apply:
+        print("Dry run. Nothing changed. Re-run with --apply to put these files back (nothing is committed or pushed).")
+        return
+    for f in files:
+        dst = ws / f.relative_to(root / "files")
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(f.read_bytes())
+    print("Restored. Brain files are changed but not committed: review with git diff in each brain, then commit.")
+
+
+# ------------------------------------------------------------------ brain structure and migrations (section C, step 4)
+# Every brain records 'structure: N' in its .membrain.yaml (missing = 1). The framework's number is STRUCTURE (also
+# 'structure' in MANIFEST.yaml). Steps run one at a time, N -> N+1, each one documented in migrations/ in Membrain.
+def brain_dirs(ws: Path, st: dict) -> list:
+    """[(name, Path, vars)] for every brain recorded in the workspace state that exists on disk."""
+    out = []
+    for vs in st["varsets"]:
+        if vs["id"].startswith("brain:"):
+            name = vs["id"][len("brain:"):]
+            d = ws / "brains" / name
+            if (d / ".membrain.yaml").exists():
+                out.append((name, d, vs["vars"]))
+    return out
+
+
+def brain_structure(d: Path) -> int:
+    m = re.search(r"^structure:\s*(\d+)", (d / ".membrain.yaml").read_text(encoding="utf-8"), re.M)
+    return int(m.group(1)) if m else 1
+
+
+def set_structure(text: str, n: int) -> str:
+    line = f"structure: {n}                  # brain layout version; scripts/membrain.py migrate moves it up one step at a time"
+    if re.search(r"^structure:.*$", text, re.M):
+        return re.sub(r"^structure:.*$", line, text, count=1, flags=re.M)
+    if re.search(r"^created:.*$", text, re.M):
+        return re.sub(r"^(created:.*)$", lambda m: m.group(1) + "\n" + line, text, count=1, flags=re.M)
+    return text.rstrip("\n") + "\n" + line + "\n"
+
+
+def template_section(text: str, start: str, end: str) -> str:
+    i = text.index(start)
+    j = text.index(end, i)
+    return text[i:j]
+
+
+def _step2(ctx) -> list:
+    """1 -> 2: capture as you go, topic notes, housekeeping rules (migrations/002-capture-and-topics.md)."""
+    d, vis, vars_ = ctx["dir"], ctx["visibility"], dict(ctx["vars"])
+    if not (d / "topics" / "README.md").exists():
+        raise RuntimeError("topics/README.md is missing: apply the framework upgrade first (membrain.py upgrade --apply)")
+    skel = "personal-brain" if vis == "personal" else "shared-brain"
+    changes = []
+    claude = d / "CLAUDE.md"
+    cur = claude.read_text(encoding="utf-8") if claude.exists() else ""
+    if "## Capture as you go" not in cur:
+        sec = template_section(fetch(ctx["base"], f"templates/{skel}/CLAUDE.md"), "## Capture as you go", "## Sync and logging")
+        marker = "## Sync and logging"
+        new = cur.replace(marker, sec + marker, 1) if marker in cur else cur.rstrip("\n") + "\n\n" + sec.rstrip("\n") + "\n"
+        changes.append(("CLAUDE.md", new, "add sections 'Capture as you go' and 'Housekeeping' (before 'Sync and logging')"))
+    smap = d / "SITEMAP.md"
+    cur = smap.read_text(encoding="utf-8") if smap.exists() else ""
+    if smap.exists() and "`topics/`" not in cur:
+        row = next(l for l in fetch(ctx["base"], f"templates/{skel}/SITEMAP.md").splitlines() if l.startswith("| `topics/`"))
+        vars_["DATE"] = ctx["today"]
+        changes.append(("SITEMAP.md", cur.rstrip("\n") + "\n" + render(row, vars_, "SITEMAP topics row") + "\n", "add the `topics/` row"))
+    return changes
+
+
+MIGRATIONS = {2: ("capture-and-topics", "capture as you go, topic notes ('log this' / 'continue'), housekeeping rules", _step2)}
+
+
+def plan_migrations(ws, st, base, target, only=None):
+    plans = []
+    for name, d, vars_ in brain_dirs(ws, st):
+        if only and name != only:
+            continue
+        have = brain_structure(d)
+        vis = "personal" if re.search(r"^visibility:\s*personal", (d / ".membrain.yaml").read_text(encoding="utf-8"), re.M) else "shared"
+        steps, blocked = [], None
+        for n in range(have + 1, target + 1):
+            if n not in MIGRATIONS:
+                blocked = f"this engine has no step to structure {n}; run the engine of the newest Membrain (MEMBRAIN.md section C)"
+                break
+            slug, summary, fn = MIGRATIONS[n]
+            try:
+                changes = fn({"dir": d, "visibility": vis, "vars": vars_, "base": base, "today": today()})
+            except Exception as e:
+                blocked = f"step {n} ({slug}): {e}"
+                break
+            steps.append((n, slug, summary, changes))
+        plans.append({"name": name, "dir": d, "have": have, "steps": steps, "blocked": blocked})
+    return plans
+
+
+def cmd_migrate(o):
+    ws = Path.cwd().resolve()
+    st = load_state(ws)
+    base = normalize_base(o.base or st["source"])
+    try:
+        target = int(manifest(base).get("structure") or STRUCTURE)
+    except Exception:
+        target = STRUCTURE
+    plans = plan_migrations(ws, st, base, target, o.brain)
+    print(f"Membrain brain structure: framework {target} ({base})")
+    todo = [p for p in plans if p["steps"] or p["blocked"]]
+    for p in plans:
+        if not p["steps"] and not p["blocked"]:
+            print(f"  {p['name']:<16} structure {p['have']}: current")
+            continue
+        print(f"  {p['name']:<16} structure {p['have']} -> {p['steps'][-1][0] if p['steps'] else p['have']}")
+        for n, slug, summary, changes in p["steps"]:
+            print(f"    step {n} {slug}: {summary}")
+            for rel, _, what in changes:
+                print(f"      CHANGE  {rel}: {what}")
+            print(f"      CHANGE  .membrain.yaml: structure: {n}")
+        if p["blocked"]:
+            print(f"    BLOCKED {p['blocked']}")
+    if not todo:
+        print("Nothing to migrate.")
+        return
+    if not o.apply:
+        print("\nDry run. Nothing changed. Show this to the brain owner; on OK re-run with --apply"
+              " (it makes a restore point first, then commits each brain locally; nothing is pushed).")
+        return
+    for p in plans:
+        if not p["steps"]:
+            continue
+        d, rels = p["dir"], {".membrain.yaml", ".membrain/migrations.log"}
+        for _, _, _, changes in p["steps"]:
+            rels |= {rel for rel, _, _ in changes}
+        if (d / ".git").exists():
+            dirty = git(d, "status", "--porcelain", "--", *sorted(rels), check=False).stdout.strip()
+            if dirty:
+                print(f"  {p['name']}: skipped, uncommitted changes in {', '.join(sorted(rels))}. Commit or stash them, then re-run.")
+                continue
+        rid = make_restore_point(ws, f"migrate {p['name']} structure {p['have']} to {p['steps'][-1][0]}",
+                                 [f"brains/{p['name']}/{r}" for r in rels])
+        for n, slug, summary, changes in p["steps"]:
+            for rel, text, _ in changes:
+                write_file(d / rel, text, None)
+            meta = d / ".membrain.yaml"
+            meta.write_text(set_structure(meta.read_text(encoding="utf-8"), n), encoding="utf-8")
+            logf = d / ".membrain" / "migrations.log"
+            logf.parent.mkdir(parents=True, exist_ok=True)
+            with open(logf, "a", encoding="utf-8") as fh:
+                fh.write(f"{today()} structure {n - 1} -> {n} ({slug}) · restore point {rid}\n")
+            print(f"  {p['name']}: step {n} {slug} done")
+        if (d / ".git").exists():
+            paths = [r for r in sorted(rels) if (d / r).exists()]
+            git(d, "add", "--", *paths)
+            git(d, "commit", "-q", "--no-verify", "-m", f"membrain: migrate brain structure to {p['steps'][-1][0]}", "--", *paths, check=False)
+            print(f"  {p['name']}: committed locally (restore point {rid})")
+    print("Applied. Nothing was pushed. Lint each brain, then the sync hooks or scripts/sync.sh push as usual.")
+
+
+# ------------------------------------------------------------------ status
+def cmd_status(o):
+    ws = Path.cwd().resolve()
+    st = load_state(ws)
+    print(f"Membrain workspace {ws}: version {st['membrain_version']}, framework structure {STRUCTURE}")
+    if o.online:
+        try:
+            avail = fetch(normalize_base(st["source"]), "VERSION").strip()
+            print(f"  latest available: {avail}" + ("  -> upgrade (MEMBRAIN.md section C)" if vtuple(avail) > vtuple(st["membrain_version"]) else " (current)"))
+        except Exception as e:
+            print(f"  latest available: not checked ({e})")
+    hints = []
+    print(f"\n  {'brain':<16} {'structure':<11} {'uncommitted':<12} {'unpushed':<10} {'lint H/M/L':<11} {'topics open':<12} inbox")
+    for name, d, _ in brain_dirs(ws, st):
+        s = brain_structure(d)
+        s_txt = f"{s}" + ("-BEHIND" if s < STRUCTURE else "")
+        if s < STRUCTURE:
+            hints.append(f"{name}: structure {s} < {STRUCTURE}: run 'python3 scripts/membrain.py migrate' (dry run)")
+        dirty = unpushed = "-"
+        if (d / ".git").exists():
+            dirty = str(len([l for l in git(d, "status", "--porcelain", check=False).stdout.splitlines() if l.strip()]))
+            r = git(d, "rev-list", "--count", "@{u}..HEAD", check=False)
+            unpushed = r.stdout.strip() if r.returncode == 0 else "no-remote"
+        lint_txt = "?"
+        lint = d / "scripts" / "lint.py"
+        if lint.exists():
+            r = subprocess.run([sys.executable, str(lint), str(d), "--format", "json"], capture_output=True, text=True)
+            try:
+                fs = json.loads(r.stdout or "[]")
+                c = {k: sum(f["severity"] == k for f in fs) for k in ("HIGH", "MED", "LOW")}
+                lint_txt = f"{c['HIGH']}/{c['MED']}/{c['LOW']}"
+                if c["HIGH"]:
+                    hints.append(f"{name}: {c['HIGH']} HIGH lint finding(s): python3 brains/{name}/scripts/lint.py")
+            except ValueError:
+                pass
+        topics_open = 0
+        for tp in sorted((d / "topics").glob("*.md")) if (d / "topics").is_dir() else []:
+            if tp.name.lower() == "readme.md":
+                continue
+            m = re.search(r"\*\*Status:\*\*\s*([a-z]+)", tp.read_text(encoding="utf-8"))
+            if not m or m.group(1) in ("active", "waiting"):
+                topics_open += 1
+        inbox = d / "inbox.md"
+        unfenced = re.sub(r"(?ms)^```.*?^```", "", inbox.read_text(encoding="utf-8")) if inbox.exists() else ""
+        waiting = len(re.findall(r"^- \[ \]", unfenced, re.M))
+        print(f"  {name:<16} {s_txt:<11} {dirty:<12} {unpushed:<10} {lint_txt:<11} {topics_open:<12} {waiting}")
+        state = d / "STATE.md"
+        if state.exists():
+            nxt = re.search(r"^\*\*Next task:\*\*\s*(.+)$", state.read_text(encoding="utf-8"), re.M)
+            if nxt:
+                print(f"  {'':<16} next task: {nxt.group(1).strip()[:90]}")
+    if hints:
+        print("\nPending:")
+        for h in hints:
+            print("  - " + h)
+    else:
+        print("\nPending: nothing structural. Open topics: say \"continue\" to pick one up.")
 
 
 def main(argv=None):
@@ -735,8 +1017,18 @@ def main(argv=None):
     u.add_argument("--base")
     u.add_argument("--apply", action="store_true")
     u.add_argument("--force-local", action="store_true")
+    m = sub.add_parser("migrate")
+    m.add_argument("--base")
+    m.add_argument("--brain", help="only this brain")
+    m.add_argument("--apply", action="store_true")
+    r = sub.add_parser("restore")
+    r.add_argument("id", nargs="?")
+    r.add_argument("--apply", action="store_true")
+    s2 = sub.add_parser("status")
+    s2.add_argument("--online", action="store_true", help="also fetch the latest VERSION from the source")
     o = ap.parse_args(argv)
-    {"setup": cmd_setup, "spinoff": cmd_spinoff, "upgrade": cmd_upgrade}[o.cmd](o)
+    {"setup": cmd_setup, "spinoff": cmd_spinoff, "upgrade": cmd_upgrade, "migrate": cmd_migrate,
+     "restore": cmd_restore, "status": cmd_status}[o.cmd](o)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,17 @@
 
 Format: `## [version] - date`, newest first. Upgrades show the entries newer than the workspace's version.
 
+## [0.6.0] - 2026-10-10
+- Capture as you go: agents note settled decisions, facts, corrections and preferences the person states, even during a question, as dated one-line entries in the owning file (normal routing and privacy rules). New workspace `AGENTS.md` section 4; brain `CLAUDE.md` templates get "Capture as you go" and "Housekeeping" sections.
+- Topic notes: every brain gets `topics/README.md` (framework) with the format (status line, where it stands, next step, decisions, open questions, related; snapshot on top, append-only below). "log this" saves one, "continue" / "pick up <topic>" resumes one. New `topics/` SITEMAP row (content).
+- Everyday commands: `docs/commands.md` (also generated into each workspace as `docs/COMMANDS.md`, framework) defines status, check-up, file this, make a how-to, history, upgrade, log this and continue, each mapped to an existing script or procedure. MEMBRAIN.md "Commands" section; START-HERE resume prompt.
+- Housekeeping rules: look in the brains before asking; keep files under about 300 lines (new lint W081 long-file, `max_lines` in `.membrain/lint.yaml`); numbers carry a source and a date.
+- Brain structure version: `structure` in MANIFEST.yaml (now 2) and `structure: N` in each brain's `.membrain.yaml` (missing = 1). New lint W080 structure-behind. `scripts/membrain.py migrate` dry-runs and (with `--apply`, after OK) applies numbered steps one at a time with a restore point, records each in `.membrain/migrations.log` and commits locally. Step 2 (capture-and-topics) adds the new `CLAUDE.md` sections and the `topics/` row, taking the text from the templates. Docs: `migrations/`.
+- Restore points: `upgrade --apply` and `migrate --apply` copy every file they will change into `.membrain/restore/<id>/` first; `scripts/membrain.py restore [<id>] [--apply]` lists or puts one back. The upgrade dry run names brains whose structure is behind.
+- `scripts/membrain.py status`: per brain structure, uncommitted and unpushed changes, lint counts, open topic notes, waiting inbox items and the next task (`--online` also checks for a newer version).
+- Docs: concepts (capture, topic notes, commands, housekeeping, long reading delegated to helper readers where a tool offers them), FAQ, README. Self-test: 66 checks (13 new: templates, commands page, structure agreement, topic note lint, status, W081, W080, migrate dry run / apply / idempotent, restore, upgrade restore point).
+- Existing workspaces: the upgrade dry run shows `topics/README.md` and `docs/COMMANDS.md` as ADD and `AGENTS.md`, `lint.py`, `membrain.py` and the self-test as UPDATE; then run `scripts/membrain.py migrate` for the brain-level step.
+
 ## [0.5.1] - 2026-10-10
 - App starter scaffold (scaffolding only, no app code): every brain, personal and shared, now gets `apps/_starter/` with a blank `APP.md` (spec frontmatter and sections with fill-in prompts), `DATA-STORE.md` (rung, location pointer, owner, backup/export, explicit no-credentials warning), `SETUP-CHECKLIST.md` (the 30-minute runbook as tick boxes) and `README.md` (copy `_starter` to `apps/<name>/`). Framework files: existing brains see them as `ADD` in the upgrade dry run.
 - Lint skips `apps/_starter/**` for entry-format and orphan checks (it is a template, not notes). Privacy checks still apply.

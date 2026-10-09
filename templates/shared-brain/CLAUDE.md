@@ -37,6 +37,18 @@ What this brain is for. A line that serves none of these does not belong here.
 ## Sends
 Draft the reply or the ticket. Do not send or file it. A human does.
 
+## Capture as you go
+- While you work, write down what the person states as settled (a decision, a fact, a correction, a preference), even when they only asked a question. One dated line per item in the file that owns it, in the entry format; `inbox.md` when unsure. Routing and privacy rules apply as for any write.
+- A correction retires the old line with the ` · SUPERSEDED` tail and adds the new one. Never leave two answers standing.
+- "log this": save the current piece of work as a topic note, `topics/<slug>.md` (format in `topics/README.md`): status, where it stands, the next step, decisions, open questions.
+- "continue" or "pick up <topic>": open that topic note, say where it stands and the next step, then carry on. Save it again before the session ends.
+- Other everyday requests (status, check-up, file this, make a how-to, history, upgrade) are listed in the workspace `docs/COMMANDS.md`.
+
+## Housekeeping
+- **Look before you ask.** Search this brain (`SITEMAP.md`, the owning file, `topics/`) before asking the person for something it may already hold. If you still ask, say where you looked.
+- **Keep files short.** Aim for under 300 lines per file; lint warns above that. Propose a split (by topic or by year) with new `SITEMAP.md` rows; the owner approves the move.
+- **Numbers carry a source and a date.** Every count, rate, total or measurement says where it came from and as of when (`src:` and the date in the entry). A number without both is `unverified`.
+
 ## Sync and logging
 - **Before you read:** pull at session start and again right before you write. Claude Code and Cursor do this through the hooks in `.claude/` and `.cursor/`. Other tools: run `git pull --rebase` yourself.
 - **What to write:** only lasting knowledge in the note files. Do not log every prompt or step into them.

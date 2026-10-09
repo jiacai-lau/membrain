@@ -2,7 +2,8 @@
 # Membrain self-test. Generates a throwaway workspace from Membrain (BASE = raw URL or local folder),
 # then checks lint (core + plugin), spin-off with a privacy block, routing, the pre-commit hook, the sync scripts
 # (own-remote only, never force), the log format, the catalog (list/diff/install from a public and a private source,
-# spin-off from a brain kind) and a no-op upgrade.
+# spin-off from a brain kind), a no-op upgrade, topic notes, status, the long-file and structure checks, a structure
+# migration with its restore point, and an upgrade restore point.
 # usage: tests/run.sh [BASE]     (default BASE: 'source' in .membrain.yaml)      exit 0 = all passed
 set -uo pipefail
 # A pipe into grep -c (not grep -q) reads all input, so pipefail never sees SIGPIPE from the producer.
@@ -136,6 +137,67 @@ git -C brains/help checkout -q -- .
 up="$(scripts/upgrade.sh --base "$BASE")"
 check "upgrade dry-run on a fresh workspace proposes nothing" "grep -q 'none: every framework file is current' <<<\"\$up\""
 check "upgrade also reports the catalog"       "grep -q '^Catalog' <<<\"\$up\" && grep -q 'NEW .*client-health-dashboard@membrain' <<<\"\$up\""
+
+# ---- capture as you go, topic notes, commands, brain structure, migrations, restore points
+check "brains get topic notes, structure 2 and capture rules" "[ -f brains/personal/topics/README.md ] && [ -f brains/team/topics/README.md ] && grep -q '^structure: 2' brains/personal/.membrain.yaml && grep -q '^structure: 2' brains/team/.membrain.yaml && grep -q '^## Capture as you go' brains/team/CLAUDE.md && grep -q '^## Housekeeping' brains/personal/CLAUDE.md && grep -q '^| \`topics/\`' brains/team/SITEMAP.md"
+check "workspace gets the commands page and capture rules" "[ -f docs/COMMANDS.md ] && grep -q '^## 4. Capture as you go' AGENTS.md && grep -q 'log this' docs/COMMANDS.md"
+ms="$(python3 -c "import sys;sys.path.insert(0,'scripts');import membrain as m;print(m.manifest(sys.argv[1]).get('structure'))" "$BASE")"
+s1="$(sed -n 's/^STRUCTURE = \([0-9]*\).*/\1/p' scripts/membrain.py)"; s2="$(sed -n 's/^STRUCTURE = \([0-9]*\).*/\1/p' scripts/lint.py)"
+check "structure number agrees (MANIFEST, membrain.py, lint.py)" "[ -n '$ms' ] && [ '$ms' = '$s1' ] && [ '$ms' = '$s2' ]"
+cat > brains/personal/topics/supplier-switch.md <<'TOPIC'
+# Supplier switch
+
+**Status:** active · **Owner:** @alice · **Saved:** 2026-10-08 10:00 SGT
+
+## Where it stands
+Two suppliers compared; the trial order is not placed yet.
+
+## Next step
+- Ask the new supplier for their delivery days · 2026-10-08 · @alice
+
+## Decisions
+- Move dry goods first → fewer cold-chain risks during the trial · 2026-10-08 · @alice · src:chat 2026-10-08
+
+## Open questions
+- Who signs the trial order? · 2026-10-08 · @alice
+TOPIC
+check "a topic note in the documented format lints clean" "! python3 brains/personal/scripts/lint.py brains/personal | grep >/dev/null -c 'topics/supplier-switch'"
+out="$(python3 scripts/membrain.py status)"; rc=$?
+check "status lists every brain with open topics" "[ $rc = 0 ] && [ \"\$(awk '\$1==\"personal\"{print \$6}' <<<\"\$out\")\" = 1 ] && awk '\$1==\"team\"' <<<\"\$out\" | grep >/dev/null -c '^  team  *2 '"
+python3 -c "print('# Long\n\n' + '\n'.join('Paragraph number %d of a long note.' % i for i in range(320)))" > brains/personal/projects/long.md
+check "lint warns on a long file (W081)"       "python3 brains/personal/scripts/lint.py brains/personal | grep >/dev/null -c 'W081 long-file'"
+rm -f brains/personal/projects/long.md brains/personal/topics/supplier-switch.md
+
+cp brains/team/CLAUDE.md "$TMP/claude.new"
+python3 - <<'PY'
+p = "brains/team/CLAUDE.md"; t = open(p).read(); i = t.index("## Capture as you go"); j = t.index("## Sync and logging"); open(p, "w").write(t[:i] + t[j:])
+for p, drop in (("brains/team/SITEMAP.md", "| `topics/`"), ("brains/team/.membrain.yaml", "structure:")):
+    keep = [l for l in open(p) if not l.startswith(drop)]
+    open(p, "w").write("".join(keep))
+PY
+git -C brains/team commit -qam "simulate a brain made before structure 2" >/dev/null 2>&1
+check "lint flags a brain behind the framework (W080)" "python3 brains/team/scripts/lint.py | grep >/dev/null -c 'W080 structure-behind'"
+check "upgrade dry run reports the brain behind" "scripts/upgrade.sh --base '$BASE' | grep >/dev/null -c 'team is at 1'"
+out="$(python3 scripts/membrain.py migrate --base "$BASE")"
+check "migrate dry run lists the step, changes nothing" "grep -q 'team .*structure 1 -> 2' <<<\"\$out\" && grep -q 'CHANGE  CLAUDE.md' <<<\"\$out\" && grep -q 'personal .*current' <<<\"\$out\" && ! grep -q '^structure:' brains/team/.membrain.yaml"
+python3 scripts/membrain.py migrate --base "$BASE" --apply >"$TMP/mig.log" 2>&1; rc=$?
+check "migrate --apply: restore point, structure 2, new-brain text, committed" "[ $rc = 0 ] && grep -q '^structure: 2' brains/team/.membrain.yaml && cmp -s brains/team/CLAUDE.md '$TMP/claude.new' && grep -q '^| \`topics/\`' brains/team/SITEMAP.md && ls .membrain/restore/*migrate-team*/files/brains/team/CLAUDE.md >/dev/null 2>&1 && grep -q 'structure 1 -> 2' brains/team/.membrain/migrations.log && [ -z \"\$(git -C brains/team status --porcelain)\" ]"
+check "migrated brain: no W080, migrate is idempotent" "! python3 brains/team/scripts/lint.py | grep >/dev/null -c W080 && python3 scripts/membrain.py migrate --base '$BASE' | grep >/dev/null -c 'Nothing to migrate'"
+rid="$(ls .membrain/restore | grep migrate-team | tail -1)"
+python3 scripts/membrain.py restore "$rid" --apply >/dev/null 2>&1; rc=$?
+check "restore puts the pre-migration files back" "[ $rc = 0 ] && ! grep -q '^## Capture as you go' brains/team/CLAUDE.md && ! grep -q '^structure:' brains/team/.membrain.yaml"
+git -C brains/team checkout -q -- .
+
+python3 - <<'PY'
+import hashlib, json, re
+p = "brains/personal/topics/README.md"; old = open(p).read().replace("# Topic notes", "# Topic notes (old)", 1); open(p, "w").write(old)
+s = open(".membrain.yaml").read(); h = hashlib.sha256(old.encode()).hexdigest()
+s = re.sub(r'(- path: "brains/personal/topics/README.md"\n(?:    .*\n)*?    sha256: )"[0-9a-f]+"', lambda m: m.group(1) + json.dumps(h), s)
+open(".membrain.yaml", "w").write(s)
+PY
+git -C brains/personal commit -qam "simulate an older framework file" >/dev/null 2>&1
+up="$(scripts/upgrade.sh --base "$BASE" --apply)"
+check "upgrade --apply makes a restore point first" "grep -q 'UPDATE .*brains/personal/topics/README.md' <<<\"\$up\" && grep -q 'restore point: .membrain/restore/' <<<\"\$up\" && grep -q 'Topic notes (old)' .membrain/restore/*upgrade*/files/brains/personal/topics/README.md && ! grep -q '(old)' brains/personal/topics/README.md"
 
 echo "--- $pass passed, $fail failed"
 [ $fail = 0 ]

@@ -20,6 +20,8 @@ Core checks (codes are stable; severity HIGH / MED / LOW):
   LOW   W106 private-keyword (grant, quotation, salary, price-with-number ...)            shared brains
   LOW   W022 orphan-file / W023 stale-check (SITEMAP) / W040 old-inbox-item / W050 stale-unverified
   LOW   L070 log-format     log/YYYY-MM.md heading not '## [YYYY-MM-DD HH:MM] <type> | <subject> | <last action>'
+  LOW   W080 structure-behind  the brain's 'structure' in .membrain.yaml is older than this lint's (run membrain.py migrate)
+  LOW   W081 long-file      a note file is longer than max_lines (default 300); propose a split
 Brain-specific checks are plugins (scripts/lint_plugins/<name>.py) enabled in .membrain/lint.yaml.
 
 Usage:
@@ -28,7 +30,7 @@ Usage:
   lint.py WORKSPACE_DIR           lint every brain under WORKSPACE_DIR/brains/
   lint.py --privacy-only --visibility shared FILE      privacy check only (spin-off uses this)
 Options: --format text|md|json  --strict  --fail-on high|med|low  --config FILE  --plugins a,b
-         --registry FILE  --forbid WORD  --skip sitemap,orphans,format,dups,deadlines,log
+         --registry FILE  --forbid WORD  --skip sitemap,orphans,format,dups,deadlines,log,length,structure
          --stale-days N  --today YYYY-MM-DD  --no-privacy
 Standard library only.
 """
@@ -46,6 +48,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+STRUCTURE = 2  # brain layout version this framework expects; keep equal to STRUCTURE in membrain.py (MANIFEST 'structure')
 
 
 # ---------------------------------------------------------------- tiny YAML (scalars, inline lists,
@@ -193,6 +196,7 @@ DEFAULTS = {
     "privacy_skip": ["AGENTS.md", "log/README.md", "handoffs/README.md"],
     "log_types": ["fix", "ticket", "client", "lint", "answer"],
     "near_duplicate": 0.85,
+    "max_lines": 300,  # note files longer than this get W081 (split by topic or by year)
     "plugins": [],
     "disable": [],
 }
@@ -396,6 +400,9 @@ def note_checks(brain, files, opts, F):
         if p.suffix.lower() != ".md" or not brain.is_note(rel):
             continue
         lines = read_lines(p)
+        max_lines = int(brain.cfg.get("max_lines") or 0)
+        if "length" not in skip and max_lines and len(lines) > max_lines:
+            F.append(Finding("W081", "long-file", rel, 0, f"{len(lines)} lines (limit {max_lines}); propose a split by topic or by year, with SITEMAP rows (owner approves)"))
         mask = code_mask(lines)
         bullets = [(i, line) for i, (line, c) in enumerate(zip(lines, mask), 1) if line.startswith("- ") and not c]
         is_inbox = p.name.lower().startswith(("inbox", "_inbox"))
@@ -447,6 +454,24 @@ def note_checks(brain, files, opts, F):
         else:
             F.append(Finding("W002", "missing-owner", rel, ns[0], f"{len(ns)} entries have no @owner (legacy format). Lines: {','.join(map(str, ns))}"))
     return stale_days
+
+
+def structure_check(brain, F):
+    """W080: the brain's layout version is behind the framework's (only real brains: personal or shared, not catalogs)."""
+    meta = brain.meta
+    if not meta or meta.get("kind") or meta.get("visibility") not in ("personal", "shared"):
+        return
+    try:
+        have = int(meta.get("structure") or 1)
+    except (TypeError, ValueError):
+        have = 1
+    if have < STRUCTURE:
+        F.append(Finding("W080", "structure-behind", ".membrain.yaml", 0,
+                         f"brain structure {have}, framework expects {STRUCTURE}. From the workspace run 'python3 scripts/membrain.py migrate' "
+                         "(dry run), then '--apply' after the owner's OK"))
+    elif have > STRUCTURE:
+        F.append(Finding("W080", "structure-behind", ".membrain.yaml", 0,
+                         f"brain structure {have} is newer than this lint ({STRUCTURE}); upgrade the framework (MEMBRAIN.md section C)"))
 
 
 def log_checks(brain, F):
@@ -561,6 +586,8 @@ def lint_brain(brain: Brain, opts) -> list:
                 F.append(Finding("E030", "duplicate-copy", brain.rel(p), 0,
                                  "looks like a second copy made by Drive/sync. Stop and ask the brain owner which one to keep."))
         stale_days = note_checks(brain, files, opts, F)
+        if "structure" not in opts.skip and brain.root.is_dir():
+            structure_check(brain, F)
         if "log" not in opts.skip and brain.root.is_dir():
             log_checks(brain, F)
         if brain.root.is_dir() and "sitemap" not in opts.skip:

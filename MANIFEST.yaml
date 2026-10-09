@@ -6,7 +6,9 @@
 # scope    = workspace (setup) | personal (setup) | shared (each spin-off) | catalog-repo (catalog.py new-repo)
 # mode     = file mode to set (755 = executable)
 # raw      = true: copy the template as is, do not fill placeholders (test fixtures that contain {{...}})
-membrain_version: 0.5.1
+# structure = brain layout version; brains below it are offered numbered steps by 'membrain.py migrate' (migrations/)
+membrain_version: 0.6.0
+structure: 2
 placeholders:
   - workspace: [OWNER, DATE, MEMBRAIN_VERSION, SOURCE_URL]
   - personal: [BRAIN_NAME, OWNER, DATE, REMOTE, ALIASES]
@@ -95,6 +97,10 @@ files:
     kind: framework
     scope: workspace
     mode: "755"
+  - template: docs/commands.md
+    target: docs/COMMANDS.md
+    kind: framework
+    scope: workspace
   - template: templates/scripts/catalog.py
     target: scripts/catalog.py
     kind: framework
@@ -258,6 +264,10 @@ files:
     kind: framework
     scope: personal
     mode: "755"
+  - template: templates/brain/topics/README.md
+    target: brains/personal/topics/README.md
+    kind: framework
+    scope: personal
   - template: templates/hooks/pre-commit
     target: brains/personal/.githooks/pre-commit
     kind: framework
@@ -375,6 +385,10 @@ files:
     kind: framework
     scope: shared
     mode: "755"
+  - template: templates/brain/topics/README.md
+    target: brains/{{BRAIN_NAME}}/topics/README.md
+    kind: framework
+    scope: shared
   - template: templates/hooks/pre-commit
     target: brains/{{BRAIN_NAME}}/.githooks/pre-commit
     kind: framework

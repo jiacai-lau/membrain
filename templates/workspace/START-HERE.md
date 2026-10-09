@@ -8,6 +8,15 @@ Paste one of these into your agent as the first message. They point at the live 
 I am <name>. Read AGENTS.md in this Membrain workspace and follow it. Then tell me the TLDR and the one next task.
 ```
 
+## Everyday (after the first message)
+
+Short commands such as `status`, `check-up`, `file this`, `log this` and `continue` are defined in `docs/COMMANDS.md`. To resume work in a new session:
+
+```text
+Read AGENTS.md in this Membrain workspace and follow it. Continue <topic>: open its topic note, tell me where it
+stands and the next step, then carry on.
+```
+
 ## Teammate (one shared brain only)
 
 ```text

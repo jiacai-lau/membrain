@@ -2,4 +2,5 @@
 # Privacy checks do not run on a personal brain (it holds everything); duplicates, dates, deadlines, sitemap and log do.
 log_types: [fix, ticket, client, lint, answer, note, project]
 plugins: []                          # optional checks from scripts/lint_plugins/
+# max_lines: 300                    # note files longer than this get W081 (propose a split)
 # disable: [W002]                    # finding codes or names to turn off

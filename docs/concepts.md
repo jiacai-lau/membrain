@@ -109,7 +109,27 @@ Membrain itself contains no knowledge. It's a set of templates listed in `MANIFE
 - **framework**: Membrain's file (rules, docs, scripts, hooks). Upgrades may replace it.
 - **content**: yours after generation (sitemaps, state, inbox, routes). Never overwritten.
 
-Your workspace records the `membrain_version` it was made from and a hash of every generated file. To upgrade, your agent fetches the new version, compares hashes and shows you three kinds of change: files Membrain updated that you didn't touch, new framework files, and conflicts where you edited a framework file yourself. It applies only what you approve and never touches content.
+Your workspace records the `membrain_version` it was made from and a hash of every generated file. To upgrade, your agent fetches the new version, compares hashes and shows you three kinds of change: files Membrain updated that you didn't touch, new framework files, and conflicts where you edited a framework file yourself. It applies only what you approve and never touches content. Before it writes anything it copies the files it will replace into a **restore point** (`.membrain/restore/<id>/`), so an upgrade can be undone with `scripts/membrain.py restore`.
+
+Some improvements also need a small edit to a brain's own files, such as a new rules section in `CLAUDE.md` or a new sitemap row. Upgrades never touch those, so each brain records a **structure** number in its `.membrain.yaml`, and Membrain ships numbered steps ([migrations/](../migrations/README.md)). `scripts/membrain.py migrate` shows, brain by brain, every step between the brain's number and the framework's and the files each step would change. After your OK it makes a restore point, applies the steps one at a time, records each one and commits locally. Steps only add; they never rewrite your lines. Lint and `status` tell you when a brain is behind.
+
+## Capture as you go, and topic notes
+
+A brain is only useful if it is current, and people rarely stop to say "write that down". So agents note what you state as settled while they work (a decision, a fact, a correction, a preference), even when you only asked a question. Each one becomes a dated line in the file that owns it, through the same routing and privacy rules as any other write. A correction retires the old line instead of leaving two answers.
+
+Work that runs over several sessions gets a **topic note**: one file per piece of work in the brain's `topics/` folder, with a status line, where it stands, the next step, decisions and open questions. The top of the note is a snapshot that is replaced on each save; decisions and questions below it are append-only. Say "log this" to save one and "continue" (or "pick up <topic>") in a new session, in any tool, to resume from it. The chat that started the work isn't needed.
+
+## Everyday commands
+
+A short, fixed set of commands gives the same result whichever agent you use: `status`, `check-up`, `file this`, `make a how-to`, `history`, `upgrade`, `log this` and `continue`. Each is mapped to a script or a written procedure in [commands.md](commands.md), which is also generated into every workspace. The commands don't add rules; they are shortcuts into the existing ones.
+
+## Housekeeping rules
+
+Three small rules keep brains usable as they grow. Agents look in the brains before asking you for something you may already have written down, and say where they looked. Files stay short: about 300 lines, after which lint warns (W081) and the agent proposes a split by topic or by year for the owner to approve. Every number written into a brain says where it came from and as of when; a number without both is treated as unverified.
+
+## Long reading
+
+Reading a large folder or many documents is slow and expensive for the main session. Some agent tools let a session hand work to cheaper helper agents. Where that exists, long reading can be delegated: the helpers read and return findings with file and line references, and the main session decides what, if anything, is written to a brain. Where it doesn't, the agent reads inline. Membrain needs neither; it's an option, not a dependency on any tool.
 
 ## The catalog
 

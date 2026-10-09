@@ -56,6 +56,12 @@ No. Everything is plain markdown you can read and edit yourself. The rules are w
 **Does it replace search?**
 No. Sitemaps tell agents which file to open, which is enough for most brains. For large brains you can add a local search tool such as [qmd](https://github.com/tobi/qmd).
 
+**What does "log this" do?**
+It saves the piece of work you're on as a topic note in the right brain (`topics/<slug>.md`): status, where it stands, the next step, decisions and open questions. In a new session, say "continue" or "pick up <topic>" and the agent resumes from it. The other short commands are in [commands.md](commands.md).
+
+**Will the agent write things down without being asked?**
+Yes, but only what you state as settled: a decision, a fact, a correction, a preference. It follows the normal routing and privacy rules, writes one dated line in the owning file, and tells you what it noted.
+
 ## Upgrades
 
 **How do I upgrade?**
@@ -63,6 +69,12 @@ Paste the upgrade prompt from the README. Your agent runs a dry run, shows you t
 
 **Will an upgrade touch my notes?**
 No. Upgrades only replace framework files you haven't edited. If you edited one, it shows as a conflict and needs your explicit OK. Content files are never proposed.
+
+**What is a structure migration?**
+A small, numbered edit to a brain's own files (for example a new rules section in `CLAUDE.md` or a sitemap row) that a new Membrain version needs. Each brain records its `structure` number. `scripts/membrain.py migrate` shows the steps for each brain that is behind, and applies them one at a time after your OK. Steps only add things, never rewrite your lines. See [migrations/](../migrations/README.md).
+
+**Can I undo an upgrade?**
+Yes. Upgrades and migrations make a restore point first. `python3 scripts/membrain.py restore` lists them; `restore <id> --apply` puts the files back for you to review and commit.
 
 ## Catalog
 

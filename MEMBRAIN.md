@@ -9,6 +9,7 @@
 | Get the latest Membrain rules and scripts | C | "In my Membrain workspace, follow section C of https://raw.githubusercontent.com/jiacai-lau/membrain/main/MEMBRAIN.md: run the upgrade dry run, show me the changelog and the proposed framework file changes, and apply only after I say OK. Never overwrite my content files." |
 | Browse and install catalog items (skills, routines, agents, apps, brain kinds) | D | "In my Membrain workspace, follow section D of https://raw.githubusercontent.com/jiacai-lau/membrain/main/MEMBRAIN.md: show me what is new or updated in every catalog I use, and install only the items I pick." |
 | Plan an app (booking page, form, intake chat) from a brain (draft) | E | "In my Membrain workspace, follow section E of https://raw.githubusercontent.com/jiacai-lau/membrain/main/MEMBRAIN.md to write an app spec for `<app>` in brain `<brain>`. Propose the storage rung, show me the spec, and don't build anything, create a data store or send data anywhere until I say so." |
+| Check health, file a note, save or resume a piece of work | Commands | "Read AGENTS.md in my Membrain workspace and follow it. Then: status." (or "log this", "continue <topic>", "check-up"; the list is in [docs/commands.md](docs/commands.md)) |
 
 **What your agent will do.** It asks you a few questions, generates files from the templates listed in `MANIFEST.yaml`, runs a self-test, and ends with a short summary and the next step.
 
@@ -34,7 +35,8 @@ You were pointed here to **set up** (A), **spin off** (B), **upgrade** (C), **br
 Each entry: `template` (path in this repo), `target` (path in the workspace), `kind` (`framework` = Membrain's, may be upgraded; `content` = the person's after generation, never overwritten), `scope` (`workspace` and `personal` at setup, `shared` at each spin-off), optional `mode` (`"755"` = executable).
 Placeholders `{{NAME}}` appear in template text and in targets. Fill them exactly; no `{{...}}` may remain. Exception: an entry with `raw: true` (test fixtures) is copied as is. Entries with `scope: catalog-repo` are not part of a workspace; `scripts/catalog.py new-repo` uses them to create a private catalog repo.
 
-Every brain (personal and shared) gets the same framework files: `AGENTS.md`, `.gitignore`, `handoffs/README.md` (the personal brain also `installed/README.md`), `log/README.md`, the lint (`scripts/lint.py`, `scripts/lint_plugins/`), sync scripts (`scripts/sync.sh`, `scripts/pull-if-stale.sh`, `scripts/push-if-changed.sh`), agent hooks (`.claude/settings.json`, `.cursor/hooks.json`, `.cursor/rules/<brain>.mdc`), CI (`.github/workflows/lint.yml`) and the pre-commit hook (`.githooks/pre-commit`). Its `CLAUDE.md`, `SITEMAP.md`, `STATE.md`, `inbox.md`, CSVs, `.membrain.yaml`, `.membrain/lint.yaml` (and a shared brain's `README.md`) are content.
+Every brain (personal and shared) gets the same framework files: `AGENTS.md`, `.gitignore`, `handoffs/README.md` (the personal brain also `installed/README.md`), `log/README.md`, `topics/README.md` (topic note format), `apps/_starter/`, the lint (`scripts/lint.py`, `scripts/lint_plugins/`), sync scripts (`scripts/sync.sh`, `scripts/pull-if-stale.sh`, `scripts/push-if-changed.sh`), agent hooks (`.claude/settings.json`, `.cursor/hooks.json`, `.cursor/rules/<brain>.mdc`), CI (`.github/workflows/lint.yml`) and the pre-commit hook (`.githooks/pre-commit`). Its `CLAUDE.md`, `SITEMAP.md`, `STATE.md`, `inbox.md`, CSVs, `.membrain.yaml`, `.membrain/lint.yaml` (and a shared brain's `README.md`) are content. The workspace also gets `docs/COMMANDS.md`, generated from [docs/commands.md](docs/commands.md).
+`structure` in `MANIFEST.yaml` is the brain layout version. New brains record it as `structure: N` in their `.membrain.yaml`; older brains are moved up one numbered step at a time by `scripts/membrain.py migrate` (section C, [migrations/](migrations/README.md)).
 
 ---
 
@@ -109,8 +111,11 @@ Manual path (same result):
    - `CONFLICT`: you edited the file locally → show the diff; replace only with `--force-local` and OK
    - `RETIRED`: Membrain no longer generates it → left in place; the person may delete it
    Content files are never proposed; new content templates are listed separately as "not applied". At the end it lists **catalog** items that are `NEW` (in a catalog, not installed), `UPDATED` (newer version than installed) or `EDITED` (an installed file changed locally). An upgrade never installs catalog items; offer them through section D.
-2. Show the person the CHANGELOG lines and the proposal list. On OK: `scripts/upgrade.sh --apply`. It writes only the approved framework files, updates hashes and `membrain_version` in `.membrain.yaml`, and commits touched brain files locally (pathspec commit). Nothing is pushed by the upgrade itself.
-3. If the changelog mentions new content (for example new sections for brain `CLAUDE.md`, a shared `README.md`, or `.membrain/lint.yaml`), propose those edits to the person; apply them only after OK.
+   The dry run also names any brain whose `structure` is behind the framework's (step 4).
+2. Show the person the CHANGELOG lines and the proposal list. On OK: `scripts/upgrade.sh --apply`. It first makes a **restore point** (a copy of every file it will replace, plus `.membrain.yaml`, in `.membrain/restore/<id>/`), then writes only the approved framework files, updates hashes and `membrain_version` in `.membrain.yaml`, and commits touched brain files locally (pathspec commit). Nothing is pushed by the upgrade itself.
+3. If the changelog mentions new content (for example new sections for brain `CLAUDE.md`, a shared `README.md`, or `.membrain/lint.yaml`) that no structure step covers, propose those edits to the person; apply them only after OK.
+4. **Structure steps.** Run `python3 scripts/membrain.py migrate` (dry run; `--brain <name>` for one brain). For each brain behind the framework it lists every numbered step, one at a time, and each file it would change (steps only add sections, rows or settings; they never rewrite lines). Show it to the brain owner. On OK: `python3 scripts/membrain.py migrate --apply`. Per brain it skips files with uncommitted edits, makes a restore point, applies the steps in order, sets `structure:` and appends to `.membrain/migrations.log` after each step, and commits locally. Details and the list of steps: [migrations/README.md](migrations/README.md). Lint (W080) and `scripts/membrain.py status` flag a brain that is behind.
+5. **Undo.** `python3 scripts/membrain.py restore` lists restore points; `restore <id>` is a dry run, `restore <id> --apply` copies the files back (uncommitted, for review). Files the change added are left in place.
 
 ## D. Browse and install from the catalog
 
@@ -144,3 +149,19 @@ A **catalog** is a folder with `INDEX.yaml` and one folder per item, `<type>/<id
 4. **Show the person** the spec and the rung. Build, create a data store, deploy, connect accounts or send real client data to an outside service only on their explicit OK. Set `status` honestly (`spec` until built; `built-untested` until one supervised run).
 5. **Changes** go into `APP.md` first (bump `version`; bump `schema_version` and log it in `apps/<name>/changes.md` if the data changes), then the app is regenerated. Moving to another rung follows the export/import contract in docs/apps.md.
 6. Lint the brain and finish with a TLDR: what was written, the open questions, the proposed rung, and what needs the person's OK.
+
+## Commands (everyday use)
+
+After setup, the person talks to their agent in short commands. Each one is defined once in [docs/commands.md](docs/commands.md) (generated into the workspace as `docs/COMMANDS.md`) and mapped to a script or procedure; follow that page and do not invent other meanings.
+
+| Say | Maps to |
+|---|---|
+| status | `scripts/membrain.py status`: structure, uncommitted and unpushed changes, lint counts, open topic notes, inbox, next task |
+| check-up | `scripts/lint.py --format md` plus `guides/weekly-lint.md`; propose fixes, change nothing until yes |
+| file this | routing (`scripts/route.py classify`) and the write rules in the workspace `AGENTS.md` |
+| make a how-to | a procedure file in `howto/` (or the shared brain's procedure file); optionally a private catalog skill |
+| history | the brain's `log/YYYY-MM.md` headings and `git log` |
+| upgrade | section C |
+| log this / continue | topic notes, `topics/<slug>.md` (format in each brain's `topics/README.md`) |
+
+Throughout every session the agent also captures as it goes: settled decisions, facts and corrections the person states become dated lines in the owning file, under the normal routing and privacy rules (workspace `AGENTS.md` section 4).

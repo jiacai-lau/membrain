@@ -4,5 +4,6 @@ visibility: personal
 owner: {{OWNER}}
 remote: {{REMOTE}}   # the ONLY remote scripts/sync.sh pushes to; must be a private repo
 created: {{DATE}}
+structure: 2                  # brain layout version; scripts/membrain.py migrate moves it up one step at a time
 stale_days: 30
 inbox_days: 14

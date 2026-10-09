@@ -9,4 +9,5 @@ plugins: []                          # optional checks from scripts/lint_plugins
 #   tickets: tickets/log.md
 #   ticket_id: "T-\\d+"
 # privacy_allow: ["@example\\.com"]  # regexes the privacy check ignores (after the owner's review)
+# max_lines: 300                    # note files longer than this get W081 (propose a split)
 # disable: [W002]                    # finding codes or names to turn off

@@ -93,7 +93,7 @@ Standard library only. Produces the same workspace as section A.
 ├── START-HERE.md              copy-paste prompts for you, teammates and scheduled jobs
 ├── .cursor/rules/membrain.mdc Cursor picks up the same rules
 ├── .membrain.yaml             Membrain version + file hashes, used for upgrades
-├── docs/                      entry format, privacy rules, sitemap format
+├── docs/                      entry format, privacy rules, sitemap format, everyday commands
 ├── scripts/                   lint, router, spin-off, upgrade, catalog, pull-all
 └── brains/
     ├── personal/              PRIVATE git repo
@@ -102,6 +102,7 @@ Standard library only. Produces the same workspace as section A.
     │   ├── SITEMAP.md         which file owns which kind of fact, last changed / last checked
     │   ├── STATE.md           TLDR and the one next task
     │   ├── inbox.md           proposed lines waiting for your decision
+    │   ├── topics/            topic notes: ongoing work saved with "log this", resumed with "continue"
     │   ├── installed/         catalog items you chose to install, one folder each
     │   └── howto/ projects/ pointers/ handoffs/
     └── support/               a spun-off shared brain: its own git repo, rules, sitemap and lint
@@ -127,7 +128,8 @@ flowchart TD
 - **Entries are append-only one-liners** with a date, an `@owner` and a status. To retire one, append ` · SUPERSEDED <date>: <reason>`; never delete.
 - **Agents verify their writes**: read the file back, run lint, then say "saved".
 - **Sync hooks** for Claude Code and Cursor pull a brain when it's stale and push when it changed. A **monthly log** records what happened in a greppable format.
-- **Upgrades touch framework files only.** Your agent compares the stamped `membrain_version` and file hashes, shows you what would change, and never rewrites your notes.
+- **Agents capture as they go.** Decisions, facts and corrections you state become dated lines in the right file. "log this" saves a topic note; "continue" resumes it in any tool. A short set of [everyday commands](docs/commands.md) (status, check-up, file this, make a how-to, history, upgrade) works the same in every agent.
+- **Upgrades touch framework files only.** Your agent compares the stamped `membrain_version` and file hashes, shows you what would change, makes a restore point, and never rewrites your notes. Brains record a structure number; numbered migration steps bring older brains up one step at a time after your OK.
 
 More in [docs/concepts.md](docs/concepts.md).
 
@@ -166,7 +168,7 @@ A brain can also describe a simple app (a booking page, a form, a dashboard, an 
 | Upgrade | `In my Membrain workspace, follow section C of https://raw.githubusercontent.com/jiacai-lau/membrain/main/MEMBRAIN.md: run the upgrade dry run, show me the changelog and the proposed framework file changes, and apply only after I say OK. Never overwrite my content files.` | dry-runs, shows the changelog and each proposed file change | applies changes or touches your content |
 | Browse the catalog | `In my Membrain workspace, follow section D of https://raw.githubusercontent.com/jiacai-lau/membrain/main/MEMBRAIN.md: show me what is new or updated in every catalog I use, and install only the items I pick.` | lists new and updated items from every catalog, explains each one's status, installs your picks with their config | installs anything you didn't pick, or presents a spec or idea as working |
 
-Daily prompts for you, teammates and scheduled jobs are in the generated `START-HERE.md`.
+Daily prompts for you, teammates and scheduled jobs are in the generated `START-HERE.md`; everyday commands are in [docs/commands.md](docs/commands.md).
 
 ## FAQ
 
